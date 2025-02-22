@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Upload } from "lucide-react";
@@ -27,6 +28,11 @@ const CreateCampaign = () => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaignName, setCampaignName] = useState("");
+  const [description, setDescription] = useState("");
+  const [cadence, setCadence] = useState("");
+  const [targetAudience, setTargetAudience] = useState("");
+  const [platforms, setPlatforms] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -51,7 +57,7 @@ const CreateCampaign = () => {
 
   const handleSelect = async (selectedCampaign: Campaign) => {
     try {
-      // Insert the selected campaign into Supabase
+      // Insert the selected campaign into Supabase with all required fields
       const { error } = await supabase
         .from('campaigns')
         .insert({
@@ -59,14 +65,27 @@ const CreateCampaign = () => {
           caption: selectedCampaign.caption,
           hashtags: selectedCampaign.hashtags,
           selected: true,
-          title: "Generated Campaign", // Required field
+          title: campaignName || "Generated Campaign", // Use entered name or fallback
+          description: description,
+          cadence: cadence,
+          target_audience: targetAudience,
+          platforms: [platforms].filter(Boolean), // Convert to array and remove empty values
         });
 
       if (error) throw error;
 
-      // Navigate to completion page
+      // Navigate to completion page with all necessary campaign data
       navigate('/campaign-completion', {
-        state: { campaign: selectedCampaign }
+        state: {
+          campaign: {
+            ...selectedCampaign,
+            title: campaignName || "Generated Campaign",
+            description,
+            cadence,
+            target_audience: targetAudience,
+            platforms: [platforms].filter(Boolean),
+          }
+        }
       });
     } catch (error) {
       console.error('Error:', error);
@@ -81,7 +100,6 @@ const CreateCampaign = () => {
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      // Check if we have an uploaded file
       if (uploadedFiles.length === 0) {
         toast({
           title: "Error",
@@ -92,10 +110,8 @@ const CreateCampaign = () => {
         return;
       }
 
-      // Use the preview URL from the first uploaded file
       const imageUrl = uploadedFiles[0].preview;
 
-      // Generate mock campaigns with the uploaded image
       const mockCampaigns: Campaign[] = [
         {
           id: crypto.randomUUID(),
@@ -210,12 +226,17 @@ const CreateCampaign = () => {
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="campaign-name">Campaign Name</Label>
-                    <Input id="campaign-name" placeholder="Enter campaign name" />
+                    <Input 
+                      id="campaign-name" 
+                      placeholder="Enter campaign name"
+                      value={campaignName}
+                      onChange={(e) => setCampaignName(e.target.value)}
+                    />
                   </div>
 
                   <div>
                     <Label>Campaign Cadence</Label>
-                    <Select>
+                    <Select onValueChange={(value) => setCadence(value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select frequency" />
                       </SelectTrigger>
@@ -230,7 +251,7 @@ const CreateCampaign = () => {
 
                   <div>
                     <Label>Target Audience</Label>
-                    <Select>
+                    <Select onValueChange={(value) => setTargetAudience(value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select target audience" />
                       </SelectTrigger>
@@ -245,7 +266,7 @@ const CreateCampaign = () => {
 
                   <div>
                     <Label>Platforms</Label>
-                    <Select>
+                    <Select onValueChange={(value) => setPlatforms(value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select platforms" />
                       </SelectTrigger>
@@ -264,6 +285,8 @@ const CreateCampaign = () => {
                       id="campaign-description"
                       placeholder="Enter campaign description"
                       className="h-32"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
                     />
                   </div>
                 </div>
