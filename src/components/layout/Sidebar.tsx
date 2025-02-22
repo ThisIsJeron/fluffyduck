@@ -21,9 +21,9 @@ const navItems = [
     href: "/dashboard"
   },
   {
-    label: "Upcoming Posts",
+    label: "Current & Upcoming",
     icon: Clock,
-    href: "/upcoming-posts"
+    href: "/dashboard/upcoming"  // Changed from /upcoming-posts to /dashboard/upcoming
   },
   {
     label: "Contacts",

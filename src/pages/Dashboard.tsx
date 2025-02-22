@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { MessageCircle, Heart, Eye } from "lucide-react";
@@ -13,7 +12,7 @@ import { useLocation } from "react-router-dom";
 const Dashboard = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const location = useLocation();
-  const isUpcomingRoute = location.pathname === '/upcoming-posts';
+  const isUpcomingRoute = location.pathname === '/dashboard/upcoming';  // Updated route check
   
   const { data: campaigns, isLoading } = useQuery({
     queryKey: ['campaigns'],
@@ -21,11 +20,10 @@ const Dashboard = () => {
       const { data, error } = await supabase
         .from('campaigns')
         .select('*')
-        .order('end_date', { ascending: isUpcomingRoute }); // Ascending for upcoming, descending for past
+        .order('end_date', { ascending: isUpcomingRoute });
       
       if (error) throw error;
 
-      // Transform the date strings to Date objects
       return (data || []).map(campaign => ({
         ...campaign,
         start_date: campaign.start_date ? new Date(campaign.start_date) : null,
