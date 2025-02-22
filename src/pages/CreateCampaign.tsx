@@ -43,38 +43,61 @@ const CreateCampaign = () => {
 
   const handleSelect = async (selectedCampaign: Campaign) => {
     try {
-      const { data, error } = await supabase
-        .from('campaigns')
-        .insert({
-          media_url: selectedCampaign.media_url,
-          caption: selectedCampaign.caption,
-          hashtags: selectedCampaign.hashtags,
-          selected: true,
-          title: campaignName,
-          description: description,
-          cadence: cadence,
-          target_audience: targetAudience,
-          platforms: platforms ? [platforms] : [],
-        })
-        .select()
-        .single();
+      // Convert blob URL to base64
+      const response = await fetch(selectedCampaign.media_url);
+      const blob = await response.blob();
+      const reader = new FileReader();
+      
+      reader.onloadend = async () => {
+        try {
+          const base64data = reader.result as string;
+          
+          // Insert campaign with base64 image data
+          const { data, error } = await supabase
+            .from('campaigns')
+            .insert({
+              media_url: base64data,
+              caption: selectedCampaign.caption,
+              hashtags: selectedCampaign.hashtags,
+              selected: true,
+              title: campaignName,
+              description: description,
+              cadence: cadence,
+              target_audience: targetAudience,
+              platforms: platforms ? [platforms] : [],
+            })
+            .select()
+            .single();
 
-      if (error) throw error;
+          if (error) throw error;
 
-      if (!data) {
-        throw new Error('Campaign was not created');
-      }
+          if (!data) {
+            throw new Error('Campaign was not created');
+          }
 
-      navigate('/campaign-completion', {
-        state: {
-          campaignId: data.id
+          // Navigate with campaign ID
+          navigate('/campaign-completion', {
+            state: {
+              campaignId: data.id
+            },
+            replace: true // Use replace to prevent back navigation issues
+          });
+        } catch (error) {
+          console.error('Error:', error);
+          toast({
+            title: "Error",
+            description: "Failed to save campaign",
+            variant: "destructive",
+          });
         }
-      });
+      };
+
+      reader.readAsDataURL(blob);
     } catch (error) {
       console.error('Error:', error);
       toast({
         title: "Error",
-        description: "Failed to save campaign",
+        description: "Failed to process image",
         variant: "destructive",
       });
     }
