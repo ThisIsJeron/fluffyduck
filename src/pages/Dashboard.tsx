@@ -1,5 +1,4 @@
 
-import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { MessageCircle, Heart, Eye } from "lucide-react";
@@ -7,6 +6,8 @@ import Sidebar from "@/components/layout/Sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { Campaign } from "@/types/campaign";
 import { CampaignDetailsDialog } from "@/components/campaign/CampaignDetailsDialog";
+import { useState } from "react";
+import { format, isBefore, isAfter, startOfToday } from "date-fns";
 
 const Dashboard = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
@@ -17,12 +18,28 @@ const Dashboard = () => {
       const { data, error } = await supabase
         .from('campaigns')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('end_date', { ascending: true });
       
       if (error) throw error;
-      return data || [];
+
+      // Transform the date strings to Date objects
+      return (data || []).map(campaign => ({
+        ...campaign,
+        start_date: campaign.start_date ? new Date(campaign.start_date) : null,
+        end_date: campaign.end_date ? new Date(campaign.end_date) : null
+      }));
     }
   });
+
+  const today = startOfToday();
+
+  const pastCampaigns = campaigns?.filter(campaign => 
+    campaign.end_date && isBefore(campaign.end_date, today)
+  ) || [];
+
+  const currentAndUpcomingCampaigns = campaigns?.filter(campaign => 
+    campaign.end_date && isAfter(campaign.end_date, today)
+  ) || [];
 
   const renderMetrics = (campaign: Campaign) => (
     <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -41,45 +58,85 @@ const Dashboard = () => {
     </div>
   );
 
+  const CampaignCard = ({ campaign }: { campaign: Campaign }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => setSelectedCampaign(campaign)}
+    >
+      <div className="aspect-video relative overflow-hidden">
+        <img
+          src={campaign.media_url}
+          alt={campaign.title}
+          className="w-full h-full object-cover"
+        />
+      </div>
+      <div className="p-4">
+        <h3 className="font-medium mb-2">{campaign.title}</h3>
+        <div className="text-sm text-gray-500 mb-2">
+          {campaign.end_date && (
+            <p>
+              {isBefore(campaign.end_date, today)
+                ? `Ended ${format(campaign.end_date, 'MMM dd, yyyy')}`
+                : `Ends ${format(campaign.end_date, 'MMM dd, yyyy')}`}
+            </p>
+          )}
+        </div>
+        {renderMetrics(campaign)}
+      </div>
+    </motion.div>
+  );
+
   return (
     <div className="flex min-h-screen bg-secondary">
       <Sidebar />
       <main className="flex-1 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-2xl font-bold">Past Outreach</h1>
-            <button className="bg-accent text-accent-foreground px-4 py-2 rounded-lg">
-              View Collection
-            </button>
-          </div>
-
-          {isLoading ? (
-            <div className="text-center py-12">Loading campaigns...</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {campaigns?.map((campaign) => (
-                <motion.div
-                  key={campaign.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => setSelectedCampaign(campaign)}
-                >
-                  <div className="aspect-video relative overflow-hidden">
-                    <img
-                      src={campaign.media_url}
-                      alt={campaign.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-medium mb-2">{campaign.title}</h3>
-                    {renderMetrics(campaign)}
-                  </div>
-                </motion.div>
-              ))}
+        <div className="max-w-7xl mx-auto space-y-12">
+          {/* Current & Upcoming Campaigns Section */}
+          <section>
+            <div className="flex justify-between items-center mb-8">
+              <h1 className="text-2xl font-bold">Current & Upcoming Campaigns</h1>
+              <button className="bg-accent text-accent-foreground px-4 py-2 rounded-lg">
+                View Collection
+              </button>
             </div>
-          )}
+
+            {isLoading ? (
+              <div className="text-center py-12">Loading campaigns...</div>
+            ) : currentAndUpcomingCampaigns.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {currentAndUpcomingCampaigns.map((campaign) => (
+                  <CampaignCard key={campaign.id} campaign={campaign} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                No upcoming campaigns
+              </div>
+            )}
+          </section>
+
+          {/* Past Campaigns Section */}
+          <section>
+            <div className="flex justify-between items-center mb-8">
+              <h1 className="text-2xl font-bold">Past Campaigns</h1>
+            </div>
+
+            {isLoading ? (
+              <div className="text-center py-12">Loading campaigns...</div>
+            ) : pastCampaigns.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {pastCampaigns.map((campaign) => (
+                  <CampaignCard key={campaign.id} campaign={campaign} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                No past campaigns
+              </div>
+            )}
+          </section>
         </div>
       </main>
       
