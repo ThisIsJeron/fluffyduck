@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Upload, Users, Calendar, Share2 } from "lucide-react";
+import { Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -53,33 +53,54 @@ const CreateCampaign = () => {
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      // Upload file to Supabase Storage
+      // Validate file upload
       if (uploadedFiles.length === 0) {
         toast({
           title: "Error",
           description: "Please upload at least one image",
           variant: "destructive",
         });
+        setIsGenerating(false);
         return;
       }
 
       const file = uploadedFiles[0];
-      const fileExt = file.name.split('.').pop();
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Error",
+          description: "Please upload an image file",
+          variant: "destructive",
+        });
+        setIsGenerating(false);
+        return;
+      }
+
+      // Generate a safe file extension
+      const fileExt = file.type.split('/')[1] || 'jpg';
       const filePath = `${crypto.randomUUID()}.${fileExt}`;
 
-      const { error: uploadError, data } = await supabase.storage
+      // Upload to Supabase storage
+      const { error: uploadError } = await supabase.storage
         .from('campaign_media')
         .upload(filePath, file);
 
       if (uploadError) {
-        throw uploadError;
+        console.error('Upload error:', uploadError);
+        throw new Error('Failed to upload image');
       }
 
+      // Get the public URL
       const { data: { publicUrl } } = supabase.storage
         .from('campaign_media')
         .getPublicUrl(filePath);
 
-      // Generate mock campaigns (in a real app, this would come from an AI service)
+      if (!publicUrl) {
+        throw new Error('Failed to get public URL');
+      }
+
+      // Generate mock campaigns
       const mockCampaigns: Campaign[] = [
         {
           id: crypto.randomUUID(),
@@ -106,11 +127,16 @@ const CreateCampaign = () => {
 
       setCampaigns(mockCampaigns);
       
+      toast({
+        title: "Success",
+        description: "Campaigns generated successfully",
+      });
+      
     } catch (error) {
       console.error('Error:', error);
       toast({
         title: "Error",
-        description: "Failed to generate campaigns",
+        description: error instanceof Error ? error.message : "Failed to generate campaigns",
         variant: "destructive",
       });
     } finally {
