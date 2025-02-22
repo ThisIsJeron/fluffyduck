@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Upload } from "lucide-react";
@@ -31,7 +32,7 @@ const CreateCampaign = () => {
   const { toast } = useToast();
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files.length > 0) {
       const files = Array.from(e.target.files).map(file => ({
         ...file,
         preview: URL.createObjectURL(file)
@@ -47,6 +48,35 @@ const CreateCampaign = () => {
       newFiles.splice(index, 1);
       return newFiles;
     });
+  };
+
+  const handleSelect = async (selectedCampaign: Campaign) => {
+    try {
+      // Insert the selected campaign into Supabase
+      const { error } = await supabase
+        .from('campaigns')
+        .insert({
+          media_url: selectedCampaign.media_url,
+          caption: selectedCampaign.caption,
+          hashtags: selectedCampaign.hashtags,
+          selected: true,
+          title: "Generated Campaign", // Required field
+        });
+
+      if (error) throw error;
+
+      // Navigate to completion page
+      navigate('/campaign-completion', {
+        state: { campaign: selectedCampaign }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save campaign",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleGenerate = async () => {
@@ -142,35 +172,6 @@ const CreateCampaign = () => {
     }
   };
 
-  const handleSelect = async (selectedCampaign: Campaign) => {
-    try {
-      // Insert the selected campaign into Supabase
-      const { error } = await supabase
-        .from('campaigns')
-        .insert({
-          media_url: selectedCampaign.media_url,
-          caption: selectedCampaign.caption,
-          hashtags: selectedCampaign.hashtags,
-          selected: true,
-          title: "Generated Campaign", // Required field
-        });
-
-      if (error) throw error;
-
-      // Navigate to completion page
-      navigate('/campaign-completion', {
-        state: { campaign: selectedCampaign }
-      });
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save campaign",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-secondary p-6">
       <div className="container mx-auto">
@@ -192,7 +193,7 @@ const CreateCampaign = () => {
                     type="file"
                     id="media-upload"
                     multiple
-                    accept="image/*,video/*"
+                    accept="image/*"
                     className="hidden"
                     onChange={handleFileUpload}
                   />
@@ -206,7 +207,7 @@ const CreateCampaign = () => {
                       <span className="text-accent font-medium">browse</span>
                     </span>
                     <span className="text-sm text-gray-400 mt-1">
-                      Support for images and videos
+                      Support for images only
                     </span>
                   </label>
                 </div>
