@@ -7,10 +7,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Campaign } from "@/types/campaign";
 import { CampaignDetailsDialog } from "@/components/campaign/CampaignDetailsDialog";
 import { useState } from "react";
-import { format, isBefore, startOfToday } from "date-fns";
+import { format, isBefore, isAfter, startOfToday } from "date-fns";
+import { useLocation } from "react-router-dom";
 
 const Dashboard = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const location = useLocation();
+  const isUpcomingRoute = location.pathname === '/upcoming-posts';
   
   const { data: campaigns, isLoading } = useQuery({
     queryKey: ['campaigns'],
@@ -18,7 +21,7 @@ const Dashboard = () => {
       const { data, error } = await supabase
         .from('campaigns')
         .select('*')
-        .order('end_date', { ascending: false }); // Changed to descending to show most recent past campaigns first
+        .order('end_date', { ascending: isUpcomingRoute }); // Ascending for upcoming, descending for past
       
       if (error) throw error;
 
@@ -33,9 +36,15 @@ const Dashboard = () => {
 
   const today = startOfToday();
 
-  const pastCampaigns = campaigns?.filter(campaign => 
-    campaign.end_date && isBefore(campaign.end_date, today)
-  ) || [];
+  const filteredCampaigns = campaigns?.filter(campaign => {
+    if (!campaign.end_date) return false;
+    
+    if (isUpcomingRoute) {
+      return isAfter(campaign.end_date, today);
+    } else {
+      return isBefore(campaign.end_date, today);
+    }
+  }) || [];
 
   const renderMetrics = (campaign: Campaign) => (
     <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -72,7 +81,12 @@ const Dashboard = () => {
         <h3 className="font-medium mb-2">{campaign.title}</h3>
         <div className="text-sm text-gray-500 mb-2">
           {campaign.end_date && (
-            <p>Ended {format(campaign.end_date, 'MMM dd, yyyy')}</p>
+            <p>
+              {isUpcomingRoute 
+                ? `Ends ${format(campaign.end_date, 'MMM dd, yyyy')}`
+                : `Ended ${format(campaign.end_date, 'MMM dd, yyyy')}`
+              }
+            </p>
           )}
         </div>
         {renderMetrics(campaign)}
@@ -87,20 +101,22 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto">
           <section>
             <div className="flex justify-between items-center mb-8">
-              <h1 className="text-2xl font-bold">Past Campaigns</h1>
+              <h1 className="text-2xl font-bold">
+                {isUpcomingRoute ? "Current & Upcoming Campaigns" : "Past Campaigns"}
+              </h1>
             </div>
 
             {isLoading ? (
               <div className="text-center py-12">Loading campaigns...</div>
-            ) : pastCampaigns.length > 0 ? (
+            ) : filteredCampaigns.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {pastCampaigns.map((campaign) => (
+                {filteredCampaigns.map((campaign) => (
                   <CampaignCard key={campaign.id} campaign={campaign} />
                 ))}
               </div>
             ) : (
               <div className="text-center py-12 text-gray-500">
-                No past campaigns
+                {isUpcomingRoute ? "No upcoming campaigns" : "No past campaigns"}
               </div>
             )}
           </section>
