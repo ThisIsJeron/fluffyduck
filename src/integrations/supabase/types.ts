@@ -51,6 +51,48 @@ export type Database = {
         }
         Relationships: []
       }
+      selected_campaigns: {
+        Row: {
+          cadence: string | null
+          caption: string | null
+          created_at: string | null
+          description: string | null
+          hashtags: string[] | null
+          id: string
+          media_url: string | null
+          metrics: Json | null
+          platforms: string[] | null
+          target_audience: string | null
+          title: string
+        }
+        Insert: {
+          cadence?: string | null
+          caption?: string | null
+          created_at?: string | null
+          description?: string | null
+          hashtags?: string[] | null
+          id?: string
+          media_url?: string | null
+          metrics?: Json | null
+          platforms?: string[] | null
+          target_audience?: string | null
+          title: string
+        }
+        Update: {
+          cadence?: string | null
+          caption?: string | null
+          created_at?: string | null
+          description?: string | null
+          hashtags?: string[] | null
+          id?: string
+          media_url?: string | null
+          metrics?: Json | null
+          platforms?: string[] | null
+          target_audience?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
