@@ -38,62 +38,43 @@ export const useCampaignCreation = () => {
 
   const handleSelect = async (selectedCampaign: Campaign) => {
     try {
-      // Instead of fetching the URL, we'll use the base64 data from the original upload
-      const originalFile = uploadedFiles[0];
-      const reader = new FileReader();
-      
-      reader.onloadend = async () => {
-        try {
-          const base64data = reader.result as string;
-          
-          const { data, error } = await supabase
-            .from('selected_campaigns')
-            .insert({
-              media_url: base64data,
-              caption: selectedCampaign.caption,
-              hashtags: selectedCampaign.hashtags,
-              title: campaignName,
-              description: description,
-              cadence: cadence,
-              target_audience: targetAudience,
-              platforms: platforms ? [platforms] : [],
-              metrics: {
-                likes: 0,
-                comments: 0,
-                views: 0
-              }
-            })
-            .select()
-            .single();
-
-          if (error) throw error;
-
-          if (!data) {
-            throw new Error('Campaign was not created');
+      const { data, error } = await supabase
+        .from('selected_campaigns')
+        .insert({
+          media_url: selectedCampaign.media_url, // Use the media_url directly from selectedCampaign
+          caption: selectedCampaign.caption,
+          hashtags: selectedCampaign.hashtags,
+          title: campaignName,
+          description: description,
+          cadence: cadence,
+          target_audience: targetAudience,
+          platforms: platforms ? [platforms] : [],
+          metrics: {
+            likes: 0,
+            comments: 0,
+            views: 0
           }
+        })
+        .select()
+        .single();
 
-          await supabase
-            .from('campaigns')
-            .update({ selected: true })
-            .eq('title', campaignName);
+      if (error) throw error;
 
-          navigate(`/campaign-completion/${data.id}`);
-        } catch (error) {
-          console.error('Error:', error);
-          toast({
-            title: "Error",
-            description: "Failed to save campaign",
-            variant: "destructive",
-          });
-        }
-      };
+      if (!data) {
+        throw new Error('Campaign was not created');
+      }
 
-      reader.readAsDataURL(originalFile);
+      await supabase
+        .from('campaigns')
+        .update({ selected: true })
+        .eq('title', campaignName);
+
+      navigate(`/campaign-completion/${data.id}`);
     } catch (error) {
       console.error('Error:', error);
       toast({
         title: "Error",
-        description: "Failed to process image",
+        description: "Failed to save campaign",
         variant: "destructive",
       });
     }
@@ -137,21 +118,21 @@ export const useCampaignCreation = () => {
           const mockCampaigns: Campaign[] = [
             {
               id: crypto.randomUUID(),
-              media_url: file.preview,
+              media_url: base64data, // Use the same base64 data here
               caption: "Elevate your events with our premium catering service! 🍽️✨",
               hashtags: ["CateringExcellence", "PremiumDining", "EventPlanning"],
               selected: false
             },
             {
               id: crypto.randomUUID(),
-              media_url: file.preview,
+              media_url: base64data, // Use the same base64 data here
               caption: "Create unforgettable moments with exceptional cuisine 🎉",
               hashtags: ["LuxuryCatering", "EventCatering", "FineFood"],
               selected: false
             },
             {
               id: crypto.randomUUID(),
-              media_url: file.preview,
+              media_url: base64data, // Use the same base64 data here
               caption: "Transform your special day with our exquisite catering 🌟",
               hashtags: ["GourmetCatering", "SpecialEvents", "CulinaryArt"],
               selected: false
