@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Upload } from "lucide-react";
@@ -65,25 +64,27 @@ const CreateCampaign = () => {
           caption: selectedCampaign.caption,
           hashtags: selectedCampaign.hashtags,
           selected: true,
-          title: campaignName || "Generated Campaign", // Use entered name or fallback
+          title: campaignName,
           description: description,
           cadence: cadence,
           target_audience: targetAudience,
-          platforms: [platforms].filter(Boolean), // Convert to array and remove empty values
+          platforms: platforms ? [platforms] : [],
         });
 
       if (error) throw error;
 
-      // Navigate to completion page with all necessary campaign data
+      // Navigate to completion page with all campaign data
       navigate('/campaign-completion', {
         state: {
           campaign: {
-            ...selectedCampaign,
-            title: campaignName || "Generated Campaign",
-            description,
-            cadence,
+            media_url: selectedCampaign.media_url,
+            caption: selectedCampaign.caption,
+            hashtags: selectedCampaign.hashtags,
+            title: campaignName,
+            description: description,
+            cadence: cadence,
             target_audience: targetAudience,
-            platforms: [platforms].filter(Boolean),
+            platforms: platforms ? [platforms] : [],
           }
         }
       });
