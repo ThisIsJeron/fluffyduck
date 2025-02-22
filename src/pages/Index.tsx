@@ -54,10 +54,10 @@ const Index = () => {
             <p className="text-xl text-gray-600 mb-8">
               Automate customer interactions, streamline catering operations, and grow your B2B relationships effortlessly.
             </p>
-            <button className="bg-accent text-white px-8 py-4 rounded-full text-lg font-medium hover:bg-accent/90 transition-colors inline-flex items-center gap-2">
-              Schedule a Demo
+            <Link to="/create-campaign" className="bg-accent text-white px-8 py-4 rounded-full text-lg font-medium hover:bg-accent/90 transition-colors inline-flex items-center gap-2">
+              Create a Campaign
               <ArrowRight className="w-5 h-5" />
-            </button>
+            </Link>
           </motion.div>
         </div>
       </section>
