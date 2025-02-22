@@ -112,13 +112,13 @@ const CampaignCompletion = () => {
             Campaign Not Found
           </h1>
           <p className="text-gray-600 mb-6">
-            We couldn't find the campaign details. Would you like to create a new campaign?
+            We couldn't find the campaign details. Would you like to view all campaigns?
           </p>
           <Button 
-            onClick={() => navigate('/create-campaign')}
+            onClick={() => navigate('/dashboard')}
             className="bg-primary hover:bg-primary/90"
           >
-            Create New Campaign
+            Go to Dashboard
           </Button>
         </div>
       </div>
@@ -126,106 +126,42 @@ const CampaignCompletion = () => {
   }
 
   return (
-    <div className="min-h-screen bg-secondary p-6 flex flex-col items-center justify-center">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8"
-      >
-        <h1 className="text-4xl font-bold text-primary mb-4">
-          Campaign has been posted! 🎉
-        </h1>
-        <p className="text-gray-600 text-lg">
-          Your campaign is now live and ready to engage with your audience
-        </p>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.2 }}
-        className="w-full max-w-2xl"
-      >
-        <Card>
-          <CardHeader className="text-2xl font-semibold">
-            {campaign.title}
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="aspect-video relative overflow-hidden rounded-lg">
-              <img
-                src={campaign.media_url}
-                alt="Campaign media"
-                className="w-full h-full object-cover"
-              />
+    <div className="min-h-screen bg-secondary p-6">
+      <div className="container mx-auto max-w-2xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          <Card>
+            <CardHeader>
+              <h1 className="text-2xl font-bold mb-2">Campaign Created Successfully! 🎉</h1>
+              <p className="text-gray-600">Your campaign has been created and is ready to be published.</p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="aspect-video relative rounded-lg overflow-hidden">
+                <img
+                  src={campaign.media_url}
+                  alt="Campaign Preview"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="text-left">
+                <h2 className="font-semibold mb-2">{campaign.title}</h2>
+                <p className="text-gray-600">{campaign.description}</p>
+              </div>
+            </CardContent>
+            <div className="p-6 flex justify-center">
+              <Button 
+                onClick={() => navigate('/dashboard')}
+                className="bg-accent hover:bg-accent/90 text-white px-8"
+              >
+                Go to Dashboard
+              </Button>
             </div>
-            
-            <div className="grid gap-4">
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Description</h3>
-                <p className="text-gray-700">{campaign.description}</p>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Campaign Details</h3>
-                <dl className="grid grid-cols-2 gap-4">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Cadence</dt>
-                    <dd className="text-gray-900 capitalize">{campaign.cadence}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Target Audience</dt>
-                    <dd className="text-gray-900 capitalize">
-                      {campaign.target_audience.replace('-', ' ')}
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Caption</h3>
-                <p className="text-gray-700">{campaign.caption}</p>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Platforms</h3>
-                <div className="flex flex-wrap gap-2">
-                  {campaign.platforms.map((platform, index) => (
-                    <span
-                      key={index}
-                      className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm capitalize"
-                    >
-                      {platform}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Hashtags</h3>
-                <div className="flex flex-wrap gap-2">
-                  {campaign.hashtags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="bg-accent/10 text-accent px-3 py-1 rounded-full text-sm"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <div className="mt-6 text-center">
-          <Button 
-            onClick={() => navigate('/create-campaign')}
-            className="bg-primary hover:bg-primary/90"
-          >
-            Create Another Campaign
-          </Button>
-        </div>
-      </motion.div>
+          </Card>
+        </motion.div>
+      </div>
     </div>
   );
 };
