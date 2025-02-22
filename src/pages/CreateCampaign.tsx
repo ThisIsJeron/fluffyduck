@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Upload } from "lucide-react";
@@ -66,11 +65,10 @@ const CreateCampaign = () => {
 
       const file = uploadedFiles[0];
       
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
+      if (!file) {
         toast({
           title: "Error",
-          description: "Please upload an image file",
+          description: "Invalid file selected",
           variant: "destructive",
         });
         setIsGenerating(false);
@@ -78,7 +76,7 @@ const CreateCampaign = () => {
       }
 
       // Generate a safe file extension
-      const fileExt = file.type.split('/')[1] || 'jpg';
+      const fileExt = file.name.split('.').pop() || 'jpg';
       const filePath = `${crypto.randomUUID()}.${fileExt}`;
 
       // Upload to Supabase storage
