@@ -57,7 +57,7 @@ const CreateCampaign = () => {
   const handleSelect = async (selectedCampaign: Campaign) => {
     try {
       // Insert the selected campaign into Supabase with all required fields
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('campaigns')
         .insert({
           media_url: selectedCampaign.media_url,
@@ -69,23 +69,20 @@ const CreateCampaign = () => {
           cadence: cadence,
           target_audience: targetAudience,
           platforms: platforms ? [platforms] : [],
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      // Navigate to completion page with all campaign data
+      if (!data) {
+        throw new Error('Campaign was not created');
+      }
+
+      // Navigate to completion page with campaign ID
       navigate('/campaign-completion', {
         state: {
-          campaign: {
-            media_url: selectedCampaign.media_url,
-            caption: selectedCampaign.caption,
-            hashtags: selectedCampaign.hashtags,
-            title: campaignName,
-            description: description,
-            cadence: cadence,
-            target_audience: targetAudience,
-            platforms: platforms ? [platforms] : [],
-          }
+          campaignId: data.id
         }
       });
     } catch (error) {

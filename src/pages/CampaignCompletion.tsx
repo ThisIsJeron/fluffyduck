@@ -1,32 +1,73 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Campaign {
+  media_url: string;
+  caption: string;
+  hashtags: string[];
+  title: string;
+  description: string;
+  cadence: string;
+  target_audience: string;
+  platforms: string[];
+}
 
 interface LocationState {
-  campaign: {
-    media_url: string;
-    caption: string;
-    hashtags: string[];
-    title: string;
-    description: string;
-    cadence: string;
-    target_audience: string;
-    platforms: string[];
-  };
+  campaignId: string;
 }
 
 const CampaignCompletion = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [loading, setLoading] = useState(true);
   const state = location.state as LocationState;
+
+  // Fetch campaign data
+  useEffect(() => {
+    const fetchCampaign = async () => {
+      if (!state?.campaignId) {
+        toast.error("Campaign ID not found");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('campaigns')
+          .select()
+          .eq('id', state.campaignId)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setCampaign(data);
+        } else {
+          toast.error("Campaign not found");
+        }
+      } catch (error) {
+        console.error('Error fetching campaign:', error);
+        toast.error("Failed to load campaign details");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCampaign();
+  }, [state?.campaignId]);
 
   // Handle confetti effect
   useEffect(() => {
+    if (!campaign) return; // Only show confetti when campaign is loaded
+
     const duration = 3 * 1000;
     const animationEnd = Date.now() + duration;
 
@@ -51,11 +92,19 @@ const CampaignCompletion = () => {
     }, 50);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [campaign]);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-secondary p-6 flex items-center justify-center">
+        <p className="text-lg text-gray-600">Loading campaign details...</p>
+      </div>
+    );
+  }
 
   // If we don't have campaign data, show a fallback UI
-  if (!state?.campaign) {
-    toast.error("Campaign data not found. Please create a new campaign.");
+  if (!campaign) {
     return (
       <div className="min-h-screen bg-secondary p-6 flex flex-col items-center justify-center">
         <div className="text-center">
@@ -99,12 +148,12 @@ const CampaignCompletion = () => {
       >
         <Card>
           <CardHeader className="text-2xl font-semibold">
-            {state.campaign.title}
+            {campaign.title}
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="aspect-video relative overflow-hidden rounded-lg">
               <img
-                src={state.campaign.media_url}
+                src={campaign.media_url}
                 alt="Campaign media"
                 className="w-full h-full object-cover"
               />
@@ -113,7 +162,7 @@ const CampaignCompletion = () => {
             <div className="grid gap-4">
               <div>
                 <h3 className="text-lg font-semibold mb-2">Description</h3>
-                <p className="text-gray-700">{state.campaign.description}</p>
+                <p className="text-gray-700">{campaign.description}</p>
               </div>
 
               <div>
@@ -121,12 +170,12 @@ const CampaignCompletion = () => {
                 <dl className="grid grid-cols-2 gap-4">
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Cadence</dt>
-                    <dd className="text-gray-900 capitalize">{state.campaign.cadence}</dd>
+                    <dd className="text-gray-900 capitalize">{campaign.cadence}</dd>
                   </div>
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Target Audience</dt>
                     <dd className="text-gray-900 capitalize">
-                      {state.campaign.target_audience.replace('-', ' ')}
+                      {campaign.target_audience.replace('-', ' ')}
                     </dd>
                   </div>
                 </dl>
@@ -134,13 +183,13 @@ const CampaignCompletion = () => {
 
               <div>
                 <h3 className="text-lg font-semibold mb-2">Caption</h3>
-                <p className="text-gray-700">{state.campaign.caption}</p>
+                <p className="text-gray-700">{campaign.caption}</p>
               </div>
 
               <div>
                 <h3 className="text-lg font-semibold mb-2">Platforms</h3>
                 <div className="flex flex-wrap gap-2">
-                  {state.campaign.platforms.map((platform, index) => (
+                  {campaign.platforms.map((platform, index) => (
                     <span
                       key={index}
                       className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm capitalize"
@@ -154,7 +203,7 @@ const CampaignCompletion = () => {
               <div>
                 <h3 className="text-lg font-semibold mb-2">Hashtags</h3>
                 <div className="flex flex-wrap gap-2">
-                  {state.campaign.hashtags.map((tag, index) => (
+                  {campaign.hashtags.map((tag, index) => (
                     <span
                       key={index}
                       className="bg-accent/10 text-accent px-3 py-1 rounded-full text-sm"
