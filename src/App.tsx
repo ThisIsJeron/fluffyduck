@@ -22,7 +22,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/upcoming" element={<Dashboard />} />
+          <Route path="/dashboard/past" element={<Dashboard />} />
           <Route path="/create-campaign" element={<CreateCampaign />} />
           <Route path="/campaign-completion/:id" element={<CampaignCompletion />} />
           <Route path="/media-library" element={<MediaLibrary />} />

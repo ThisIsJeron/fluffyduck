@@ -12,7 +12,7 @@ import { useLocation } from "react-router-dom";
 const Dashboard = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const location = useLocation();
-  const isUpcomingRoute = location.pathname === '/dashboard/upcoming';  // Updated route check
+  const isPastRoute = location.pathname === '/dashboard/past';  // Updated route check
   
   const { data: campaigns, isLoading } = useQuery({
     queryKey: ['campaigns'],
@@ -20,7 +20,7 @@ const Dashboard = () => {
       const { data, error } = await supabase
         .from('campaigns')
         .select('*')
-        .order('end_date', { ascending: isUpcomingRoute });
+        .order('end_date', { ascending: !isPastRoute });
       
       if (error) throw error;
 
@@ -37,10 +37,10 @@ const Dashboard = () => {
   const filteredCampaigns = campaigns?.filter(campaign => {
     if (!campaign.end_date) return false;
     
-    if (isUpcomingRoute) {
-      return isAfter(campaign.end_date, today);
-    } else {
+    if (isPastRoute) {
       return isBefore(campaign.end_date, today);
+    } else {
+      return isAfter(campaign.end_date, today);
     }
   }) || [];
 
@@ -80,7 +80,7 @@ const Dashboard = () => {
         <div className="text-sm text-gray-500 mb-2">
           {campaign.end_date && (
             <p>
-              {isUpcomingRoute 
+              {isPastRoute 
                 ? `Ends ${format(campaign.end_date, 'MMM dd, yyyy')}`
                 : `Ended ${format(campaign.end_date, 'MMM dd, yyyy')}`
               }
@@ -100,7 +100,7 @@ const Dashboard = () => {
           <section>
             <div className="flex justify-between items-center mb-8">
               <h1 className="text-2xl font-bold">
-                {isUpcomingRoute ? "Current & Upcoming Campaigns" : "Past Campaigns"}
+                {isPastRoute ? "Past Campaigns" : "Current & Upcoming Campaigns"}
               </h1>
             </div>
 
@@ -114,7 +114,7 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="text-center py-12 text-gray-500">
-                {isUpcomingRoute ? "No upcoming campaigns" : "No past campaigns"}
+                {isPastRoute ? "No past campaigns" : "No upcoming campaigns"}
               </div>
             )}
           </section>

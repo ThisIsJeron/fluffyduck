@@ -16,14 +16,14 @@ const navItems = [
     href: "/create-campaign"
   },
   {
-    label: "Past Campaigns",
-    icon: History,
-    href: "/dashboard"
-  },
-  {
     label: "Current & Upcoming",
     icon: Clock,
-    href: "/dashboard/upcoming"  // Changed from /upcoming-posts to /dashboard/upcoming
+    href: "/dashboard"  // Changed to be the default dashboard view
+  },
+  {
+    label: "Past Campaigns",
+    icon: History,
+    href: "/dashboard/past"  // Changed to new route for past campaigns
   },
   {
     label: "Contacts",
