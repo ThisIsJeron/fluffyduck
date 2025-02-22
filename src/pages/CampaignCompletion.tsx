@@ -23,14 +23,16 @@ const CampaignCompletion = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const state = location.state as LocationState;
-  
+
+  // Only redirect if accessed directly without state
   useEffect(() => {
-    // If no campaign data is present, redirect to create campaign
-    if (!state?.campaign) {
+    if (!location.state) {
       navigate('/create-campaign');
       return;
     }
-
+  }, [location.state, navigate]);
+  
+  useEffect(() => {
     const duration = 3 * 1000;
     const animationEnd = Date.now() + duration;
 
@@ -55,8 +57,9 @@ const CampaignCompletion = () => {
     }, 50);
 
     return () => clearInterval(interval);
-  }, [state, navigate]);
+  }, []);
 
+  // If no state, return null (this will only show briefly before redirect)
   if (!state?.campaign) {
     return null;
   }
