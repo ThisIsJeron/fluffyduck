@@ -12,11 +12,6 @@ interface GeneratedCampaignsProps {
 const GeneratedCampaigns = ({ campaigns, onSelect }: GeneratedCampaignsProps) => {
   if (campaigns.length === 0) return null;
 
-  const handleSelect = (campaign: Campaign) => {
-    // Prevent event bubbling and ensure the handler is called
-    onSelect(campaign);
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -47,7 +42,7 @@ const GeneratedCampaigns = ({ campaigns, onSelect }: GeneratedCampaignsProps) =>
             </CardContent>
             <CardFooter>
               <Button
-                onClick={() => handleSelect(campaign)}
+                onClick={() => onSelect(campaign)}
                 className="w-full bg-green-500 hover:bg-green-600"
               >
                 Select

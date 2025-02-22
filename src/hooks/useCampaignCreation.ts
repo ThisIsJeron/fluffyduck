@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -52,52 +53,45 @@ export const useCampaignCreation = () => {
 
   const handleSelect = async (selectedCampaign: Campaign) => {
     try {
-      const campaignData = {
-        media_url: base64Image,
-        caption: selectedCampaign.caption,
-        hashtags: selectedCampaign.hashtags,
-        title: campaignName,
-        description: description,
-        cadence: cadence,
-        target_audience: targetAudience,
-        platforms: platforms ? [platforms] : [],
-        start_date: startDate?.toISOString(),
-        end_date: endDate?.toISOString(),
-        metrics: {
-          likes: 0,
-          comments: 0,
-          views: 0
-        }
-      };
-
       const { data, error } = await supabase
         .from('selected_campaigns')
-        .insert(campaignData)
+        .insert({
+          media_url: base64Image,
+          caption: selectedCampaign.caption,
+          hashtags: selectedCampaign.hashtags,
+          title: campaignName,
+          description: description,
+          cadence: cadence,
+          target_audience: targetAudience,
+          platforms: platforms ? [platforms] : [],
+          start_date: startDate?.toISOString(),
+          end_date: endDate?.toISOString(),
+          metrics: {
+            likes: 0,
+            comments: 0,
+            views: 0
+          }
+        })
         .select()
         .single();
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       if (!data) {
         throw new Error('Campaign was not created');
       }
 
-      navigate(`/campaign-completion/${data.id}`);
+      await supabase
+        .from('campaigns')
+        .update({ selected: true })
+        .eq('title', campaignName);
 
-      setTimeout(() => {
-        toast({
-          title: "Success",
-          description: "Campaign selected successfully",
-        });
-      }, 100);
+      navigate(`/campaign-completion/${data.id}`);
     } catch (error) {
       console.error('Error:', error);
       toast({
         title: "Error",
-        description: "Failed to save campaign. Please try again.",
+        description: "Failed to save campaign",
         variant: "destructive",
       });
     }
@@ -222,7 +216,7 @@ export const useCampaignCreation = () => {
     setCampaignName,
     setDescription,
     setCadence,
-    setTargetAudienceChange: setTargetAudience,
+    setTargetAudience,
     setPlatforms,
     setStartDate,
     setEndDate
