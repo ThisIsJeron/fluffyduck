@@ -14,16 +14,26 @@ export const useCampaignCreation = () => {
   const [cadence, setCadence] = useState("");
   const [targetAudience, setTargetAudience] = useState("");
   const [platforms, setPlatforms] = useState("");
+  const [base64Image, setBase64Image] = useState<string>("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files).map(file => ({
-        ...file,
-        preview: URL.createObjectURL(file)
-      }));
-      setUploadedFiles(prev => [...prev, ...files]);
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setBase64Image(base64String);
+        
+        setUploadedFiles(prev => [...prev, {
+          ...file,
+          preview: URL.createObjectURL(file)
+        }]);
+      };
+      
+      reader.readAsDataURL(file);
     }
   };
 
@@ -34,6 +44,7 @@ export const useCampaignCreation = () => {
       newFiles.splice(index, 1);
       return newFiles;
     });
+    setBase64Image("");
   };
 
   const handleSelect = async (selectedCampaign: Campaign) => {
@@ -41,7 +52,7 @@ export const useCampaignCreation = () => {
       const { data, error } = await supabase
         .from('selected_campaigns')
         .insert({
-          media_url: selectedCampaign.media_url, // Use the media_url directly from selectedCampaign
+          media_url: base64Image, // Use the stored base64 image
           caption: selectedCampaign.caption,
           hashtags: selectedCampaign.hashtags,
           title: campaignName,
@@ -92,69 +103,60 @@ export const useCampaignCreation = () => {
         return;
       }
 
-      const file = uploadedFiles[0];
-      const reader = new FileReader();
+      try {
+        const { error: saveError } = await supabase
+          .from('campaigns')
+          .insert({
+            media_url: base64Image,
+            title: campaignName,
+            description: description,
+            cadence: cadence,
+            target_audience: targetAudience,
+            platforms: platforms ? [platforms] : [],
+            selected: false,
+          })
+          .select()
+          .single();
 
-      reader.onloadend = async () => {
-        try {
-          const base64data = reader.result as string;
-          
-          const { error: saveError } = await supabase
-            .from('campaigns')
-            .insert({
-              media_url: base64data,
-              title: campaignName,
-              description: description,
-              cadence: cadence,
-              target_audience: targetAudience,
-              platforms: platforms ? [platforms] : [],
-              selected: false,
-            })
-            .select()
-            .single();
+        if (saveError) throw saveError;
 
-          if (saveError) throw saveError;
+        const mockCampaigns: Campaign[] = [
+          {
+            id: crypto.randomUUID(),
+            media_url: base64Image,
+            caption: "Elevate your events with our premium catering service! 🍽️✨",
+            hashtags: ["CateringExcellence", "PremiumDining", "EventPlanning"],
+            selected: false
+          },
+          {
+            id: crypto.randomUUID(),
+            media_url: base64Image,
+            caption: "Create unforgettable moments with exceptional cuisine 🎉",
+            hashtags: ["LuxuryCatering", "EventCatering", "FineFood"],
+            selected: false
+          },
+          {
+            id: crypto.randomUUID(),
+            media_url: base64Image,
+            caption: "Transform your special day with our exquisite catering 🌟",
+            hashtags: ["GourmetCatering", "SpecialEvents", "CulinaryArt"],
+            selected: false
+          }
+        ];
 
-          const mockCampaigns: Campaign[] = [
-            {
-              id: crypto.randomUUID(),
-              media_url: base64data, // Use the same base64 data here
-              caption: "Elevate your events with our premium catering service! 🍽️✨",
-              hashtags: ["CateringExcellence", "PremiumDining", "EventPlanning"],
-              selected: false
-            },
-            {
-              id: crypto.randomUUID(),
-              media_url: base64data, // Use the same base64 data here
-              caption: "Create unforgettable moments with exceptional cuisine 🎉",
-              hashtags: ["LuxuryCatering", "EventCatering", "FineFood"],
-              selected: false
-            },
-            {
-              id: crypto.randomUUID(),
-              media_url: base64data, // Use the same base64 data here
-              caption: "Transform your special day with our exquisite catering 🌟",
-              hashtags: ["GourmetCatering", "SpecialEvents", "CulinaryArt"],
-              selected: false
-            }
-          ];
-
-          setCampaigns(mockCampaigns);
-          toast({
-            title: "Success",
-            description: "Campaigns generated successfully",
-          });
-        } catch (error) {
-          console.error('Error:', error);
-          toast({
-            title: "Error",
-            description: "Failed to save campaign",
-            variant: "destructive",
-          });
-        }
-      };
-
-      reader.readAsDataURL(file);
+        setCampaigns(mockCampaigns);
+        toast({
+          title: "Success",
+          description: "Campaigns generated successfully",
+        });
+      } catch (error) {
+        console.error('Error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save campaign",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error('Error:', error);
       toast({
