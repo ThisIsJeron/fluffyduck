@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Upload } from "lucide-react";
@@ -82,71 +81,28 @@ const CreateCampaign = () => {
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      // Validate file upload
-      if (uploadedFiles.length === 0) {
-        toast({
-          title: "Error",
-          description: "Please upload at least one image",
-          variant: "destructive",
-        });
-        setIsGenerating(false);
-        return;
-      }
+      // Generate a placeholder image URL since we're skipping file upload
+      const placeholderImageUrl = "https://placehold.co/600x400";
 
-      const file = uploadedFiles[0];
-      
-      if (!file) {
-        toast({
-          title: "Error",
-          description: "Invalid file selected",
-          variant: "destructive",
-        });
-        setIsGenerating(false);
-        return;
-      }
-
-      // Generate a safe file extension
-      const fileExt = file.name.split('.').pop() || 'jpg';
-      const filePath = `${crypto.randomUUID()}.${fileExt}`;
-
-      // Upload to Supabase storage
-      const { error: uploadError } = await supabase.storage
-        .from('campaign_media')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw new Error('Failed to upload image');
-      }
-
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('campaign_media')
-        .getPublicUrl(filePath);
-
-      if (!publicUrl) {
-        throw new Error('Failed to get public URL');
-      }
-
-      // Generate mock campaigns
+      // Generate mock campaigns with the placeholder image
       const mockCampaigns: Campaign[] = [
         {
           id: crypto.randomUUID(),
-          media_url: publicUrl,
+          media_url: placeholderImageUrl,
           caption: "Elevate your events with our premium catering service! 🍽️✨",
           hashtags: ["CateringExcellence", "PremiumDining", "EventPlanning"],
           selected: false
         },
         {
           id: crypto.randomUUID(),
-          media_url: publicUrl,
+          media_url: placeholderImageUrl,
           caption: "Create unforgettable moments with exceptional cuisine 🎉",
           hashtags: ["LuxuryCatering", "EventCatering", "FineFood"],
           selected: false
         },
         {
           id: crypto.randomUUID(),
-          media_url: publicUrl,
+          media_url: placeholderImageUrl,
           caption: "Transform your special day with our exquisite catering 🌟",
           hashtags: ["GourmetCatering", "SpecialEvents", "CulinaryArt"],
           selected: false
