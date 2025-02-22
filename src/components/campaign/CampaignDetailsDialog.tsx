@@ -6,6 +6,9 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { useState } from "react";
 import { format } from "date-fns";
 import { CalendarDays } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/components/ui/use-toast";
 
 interface CampaignDetailsDialogProps {
   campaign: Campaign;
@@ -15,10 +18,35 @@ interface CampaignDetailsDialogProps {
 
 export function CampaignDetailsDialog({ campaign, open, onOpenChange }: CampaignDetailsDialogProps) {
   const [timeScale, setTimeScale] = useState<"day" | "week">("day");
+  const queryClient = useQueryClient();
 
   const formatDate = (date: Date | null) => {
     if (!date) return "Not set";
     return format(new Date(date), "MMMM dd, yyyy");
+  };
+
+  const handleDelete = async () => {
+    const { error } = await supabase
+      .from('campaigns')
+      .delete()
+      .eq('id', campaign.id);
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete campaign"
+      });
+      return;
+    }
+
+    toast({
+      title: "Success",
+      description: "Campaign deleted successfully"
+    });
+
+    queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+    onOpenChange(false);
   };
   
   return (
@@ -56,6 +84,15 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
               <p><span className="font-medium">Cadence:</span> {campaign.cadence}</p>
               <p><span className="font-medium">Target Audience:</span> {campaign.target_audience}</p>
               <p><span className="font-medium">Platforms:</span> {campaign.platforms?.join(", ")}</p>
+              
+              {/* Cancel Campaign Button */}
+              <Button
+                variant="destructive"
+                className="w-full mt-4"
+                onClick={handleDelete}
+              >
+                Cancel Campaign
+              </Button>
             </div>
           </div>
         </div>
@@ -98,7 +135,7 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
       </DialogContent>
     </Dialog>
   );
-};
+}
 
 const mockTimeData = {
   day: [
