@@ -38,8 +38,8 @@ export const useCampaignCreation = () => {
 
   const handleSelect = async (selectedCampaign: Campaign) => {
     try {
-      const response = await fetch(selectedCampaign.media_url);
-      const blob = await response.blob();
+      // Instead of fetching the URL, we'll use the base64 data from the original upload
+      const originalFile = uploadedFiles[0];
       const reader = new FileReader();
       
       reader.onloadend = async () => {
@@ -88,7 +88,7 @@ export const useCampaignCreation = () => {
         }
       };
 
-      reader.readAsDataURL(blob);
+      reader.readAsDataURL(originalFile);
     } catch (error) {
       console.error('Error:', error);
       toast({
