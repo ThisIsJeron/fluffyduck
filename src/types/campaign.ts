@@ -9,4 +9,9 @@ export interface Campaign {
   caption: string;
   hashtags: string[];
   selected: boolean;
+  title: string;
+  description: string;
+  cadence: string;
+  target_audience: string;
+  platforms: string[];
 }

@@ -35,8 +35,8 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[80vh]">
-        <div className="grid grid-cols-2 gap-6 h-1/2">
+      <DialogContent className="max-w-4xl h-[80vh] overflow-y-auto">
+        <div className="grid grid-cols-2 gap-6 mb-6">
           {/* Left side - Image */}
           <div className="relative aspect-video">
             <img
@@ -61,7 +61,7 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
         </div>
         
         {/* Bottom half - Metrics */}
-        <div className="h-1/2 mt-6">
+        <div className="mt-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-semibold">Performance Metrics</h3>
             <div className="space-x-2">
@@ -80,9 +80,9 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
             </div>
           </div>
           
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={mockTimeData[timeScale]}>
+          <div className="w-full h-[250px]">
+            <ResponsiveContainer>
+              <LineChart data={mockTimeData[timeScale]} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="time" />
                 <YAxis />
