@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Campaign } from "@/types/campaign";
+import { format } from "date-fns";
 
 interface GeneratedCampaignsProps {
   campaigns: Campaign[];
@@ -11,6 +12,11 @@ interface GeneratedCampaignsProps {
 
 const GeneratedCampaigns = ({ campaigns, onSelect }: GeneratedCampaignsProps) => {
   if (campaigns.length === 0) return null;
+
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Not set";
+    return format(new Date(date), "MMM dd, yyyy");
+  };
 
   return (
     <motion.div
@@ -29,7 +35,7 @@ const GeneratedCampaigns = ({ campaigns, onSelect }: GeneratedCampaignsProps) =>
                 className="w-full h-48 object-cover rounded-lg mb-4"
               />
               <p className="text-gray-700 mb-3">{campaign.caption}</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 mb-4">
                 {campaign.hashtags.map((tag, index) => (
                   <span
                     key={index}
@@ -38,6 +44,10 @@ const GeneratedCampaigns = ({ campaigns, onSelect }: GeneratedCampaignsProps) =>
                     #{tag}
                   </span>
                 ))}
+              </div>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p>Start: {formatDate(campaign.start_date)}</p>
+                <p>End: {formatDate(campaign.end_date)}</p>
               </div>
             </CardContent>
             <CardFooter>

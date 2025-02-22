@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Campaign } from "@/types/campaign";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useState } from "react";
+import { format } from "date-fns";
+import { CalendarDays } from "lucide-react";
 
 interface CampaignDetailsDialogProps {
   campaign: Campaign;
@@ -11,27 +13,13 @@ interface CampaignDetailsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const mockTimeData = {
-  day: [
-    { time: "00:00", views: 120, likes: 45, comments: 12 },
-    { time: "06:00", views: 240, likes: 90, comments: 24 },
-    { time: "12:00", views: 580, likes: 210, comments: 56 },
-    { time: "18:00", views: 890, likes: 320, comments: 89 },
-    { time: "23:59", views: 1200, likes: 450, comments: 120 },
-  ],
-  week: [
-    { time: "Mon", views: 1200, likes: 450, comments: 120 },
-    { time: "Tue", views: 2400, likes: 890, comments: 240 },
-    { time: "Wed", views: 5800, likes: 2100, comments: 560 },
-    { time: "Thu", views: 8900, likes: 3200, comments: 890 },
-    { time: "Fri", views: 12000, likes: 4500, comments: 1200 },
-    { time: "Sat", views: 15000, likes: 5600, comments: 1500 },
-    { time: "Sun", views: 18000, likes: 6700, comments: 1800 },
-  ],
-};
-
 export function CampaignDetailsDialog({ campaign, open, onOpenChange }: CampaignDetailsDialogProps) {
   const [timeScale, setTimeScale] = useState<"day" | "week">("day");
+
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Not set";
+    return format(new Date(date), "MMMM dd, yyyy");
+  };
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -51,8 +39,20 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
             <h2 className="text-2xl font-bold">{campaign.title}</h2>
             <p className="text-gray-600">{campaign.description}</p>
             
-            <div className="space-y-2">
+            <div className="space-y-3">
               <h3 className="font-semibold">Campaign Details</h3>
+              <div className="bg-accent/5 p-3 rounded-lg space-y-2">
+                <div className="flex items-center gap-2 text-accent">
+                  <CalendarDays className="h-4 w-4" />
+                  <span className="font-medium">Campaign Duration</span>
+                </div>
+                <p className="text-sm">
+                  Start Date: <span className="font-medium">{formatDate(campaign.start_date)}</span>
+                </p>
+                <p className="text-sm">
+                  End Date: <span className="font-medium">{formatDate(campaign.end_date)}</span>
+                </p>
+              </div>
               <p><span className="font-medium">Cadence:</span> {campaign.cadence}</p>
               <p><span className="font-medium">Target Audience:</span> {campaign.target_audience}</p>
               <p><span className="font-medium">Platforms:</span> {campaign.platforms?.join(", ")}</p>
@@ -98,4 +98,23 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+const mockTimeData = {
+  day: [
+    { time: "00:00", views: 120, likes: 45, comments: 12 },
+    { time: "06:00", views: 240, likes: 90, comments: 24 },
+    { time: "12:00", views: 580, likes: 210, comments: 56 },
+    { time: "18:00", views: 890, likes: 320, comments: 89 },
+    { time: "23:59", views: 1200, likes: 450, comments: 120 },
+  ],
+  week: [
+    { time: "Mon", views: 1200, likes: 450, comments: 120 },
+    { time: "Tue", views: 2400, likes: 890, comments: 240 },
+    { time: "Wed", views: 5800, likes: 2100, comments: 560 },
+    { time: "Thu", views: 8900, likes: 3200, comments: 890 },
+    { time: "Fri", views: 12000, likes: 4500, comments: 1200 },
+    { time: "Sat", views: 15000, likes: 5600, comments: 1500 },
+    { time: "Sun", views: 18000, likes: 6700, comments: 1800 },
+  ],
+};
