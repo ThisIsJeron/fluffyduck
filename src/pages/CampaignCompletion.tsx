@@ -5,6 +5,7 @@ import confetti from "canvas-confetti";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface LocationState {
   campaign: {
@@ -24,14 +25,7 @@ const CampaignCompletion = () => {
   const navigate = useNavigate();
   const state = location.state as LocationState;
 
-  // Only redirect if accessed directly without state
-  useEffect(() => {
-    if (!location.state) {
-      navigate('/create-campaign');
-      return;
-    }
-  }, [location.state, navigate]);
-  
+  // Handle confetti effect
   useEffect(() => {
     const duration = 3 * 1000;
     const animationEnd = Date.now() + duration;
@@ -59,9 +53,27 @@ const CampaignCompletion = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // If no state, return null (this will only show briefly before redirect)
+  // If we don't have campaign data, show a fallback UI
   if (!state?.campaign) {
-    return null;
+    toast.error("Campaign data not found. Please create a new campaign.");
+    return (
+      <div className="min-h-screen bg-secondary p-6 flex flex-col items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-primary mb-4">
+            Campaign Not Found
+          </h1>
+          <p className="text-gray-600 mb-6">
+            We couldn't find the campaign details. Would you like to create a new campaign?
+          </p>
+          <Button 
+            onClick={() => navigate('/create-campaign')}
+            className="bg-primary hover:bg-primary/90"
+          >
+            Create New Campaign
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
