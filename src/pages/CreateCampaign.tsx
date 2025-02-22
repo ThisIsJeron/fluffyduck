@@ -2,19 +2,34 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Upload, Users, Calendar, Share2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 interface UploadedFile extends File {
   preview: string;
 }
 
+interface Campaign {
+  id: string;
+  media_url: string;
+  caption: string;
+  hashtags: string[];
+  selected: boolean;
+}
+
 const CreateCampaign = () => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -37,9 +52,99 @@ const CreateCampaign = () => {
 
   const handleGenerate = async () => {
     setIsGenerating(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsGenerating(false);
+    try {
+      // Upload file to Supabase Storage
+      if (uploadedFiles.length === 0) {
+        toast({
+          title: "Error",
+          description: "Please upload at least one image",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const file = uploadedFiles[0];
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${crypto.randomUUID()}.${fileExt}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('campaign_media')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('campaign_media')
+        .getPublicUrl(filePath);
+
+      // Generate mock campaigns (in a real app, this would come from an AI service)
+      const mockCampaigns: Campaign[] = [
+        {
+          id: crypto.randomUUID(),
+          media_url: publicUrl,
+          caption: "Elevate your events with our premium catering service! 🍽️✨",
+          hashtags: ["CateringExcellence", "PremiumDining", "EventPlanning"],
+          selected: false
+        },
+        {
+          id: crypto.randomUUID(),
+          media_url: publicUrl,
+          caption: "Create unforgettable moments with exceptional cuisine 🎉",
+          hashtags: ["LuxuryCatering", "EventCatering", "FineFood"],
+          selected: false
+        },
+        {
+          id: crypto.randomUUID(),
+          media_url: publicUrl,
+          caption: "Transform your special day with our exquisite catering 🌟",
+          hashtags: ["GourmetCatering", "SpecialEvents", "CulinaryArt"],
+          selected: false
+        }
+      ];
+
+      setCampaigns(mockCampaigns);
+      
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate campaigns",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSelect = async (selectedCampaign: Campaign) => {
+    try {
+      // Insert the selected campaign into Supabase
+      const { error } = await supabase
+        .from('campaigns')
+        .insert({
+          media_url: selectedCampaign.media_url,
+          caption: selectedCampaign.caption,
+          hashtags: selectedCampaign.hashtags,
+          selected: true,
+          title: "Generated Campaign", // Required field
+        });
+
+      if (error) throw error;
+
+      // Navigate to completion page
+      navigate('/campaign-completion', {
+        state: { campaign: selectedCampaign }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save campaign",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -184,6 +289,49 @@ const CreateCampaign = () => {
               {isGenerating ? "Generating Campaign..." : "Generate Campaign"}
             </Button>
           </div>
+
+          {/* Generated Campaigns */}
+          {campaigns.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-12"
+            >
+              <h2 className="text-2xl font-bold mb-6">Generated Campaigns</h2>
+              <div className="grid md:grid-cols-3 gap-6">
+                {campaigns.map((campaign) => (
+                  <Card key={campaign.id} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <img
+                        src={campaign.media_url}
+                        alt="Campaign"
+                        className="w-full h-48 object-cover rounded-lg mb-4"
+                      />
+                      <p className="text-gray-700 mb-3">{campaign.caption}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {campaign.hashtags.map((tag, index) => (
+                          <span
+                            key={index}
+                            className="bg-accent/10 text-accent px-2 py-1 rounded-full text-sm"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button
+                        onClick={() => handleSelect(campaign)}
+                        className="w-full bg-green-500 hover:bg-green-600"
+                      >
+                        Select
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </motion.div>
       </div>
     </div>

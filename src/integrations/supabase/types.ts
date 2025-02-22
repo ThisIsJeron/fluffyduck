@@ -9,7 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      campaigns: {
+        Row: {
+          cadence: string | null
+          caption: string | null
+          created_at: string | null
+          description: string | null
+          hashtags: string[] | null
+          id: string
+          media_url: string | null
+          platforms: string[] | null
+          selected: boolean | null
+          target_audience: string | null
+          title: string
+        }
+        Insert: {
+          cadence?: string | null
+          caption?: string | null
+          created_at?: string | null
+          description?: string | null
+          hashtags?: string[] | null
+          id?: string
+          media_url?: string | null
+          platforms?: string[] | null
+          selected?: boolean | null
+          target_audience?: string | null
+          title: string
+        }
+        Update: {
+          cadence?: string | null
+          caption?: string | null
+          created_at?: string | null
+          description?: string | null
+          hashtags?: string[] | null
+          id?: string
+          media_url?: string | null
+          platforms?: string[] | null
+          selected?: boolean | null
+          target_audience?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
