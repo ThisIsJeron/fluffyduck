@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Campaign } from "@/types/campaign";
@@ -26,50 +25,63 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
   };
 
   const handleDelete = async () => {
-    // Delete from campaigns table
-    const { error: campaignsError } = await supabase
-      .from('campaigns')
-      .delete()
-      .eq('id', campaign.id);
+    try {
+      console.log('Attempting to delete campaign:', campaign);
+      
+      // Delete from campaigns table
+      const { error: campaignsError } = await supabase
+        .from('campaigns')
+        .delete()
+        .eq('id', campaign.id);
 
-    if (campaignsError) {
+      if (campaignsError) {
+        console.error('Error deleting from campaigns:', campaignsError);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to delete campaign"
+        });
+        return;
+      }
+
+      // Delete from selected_campaigns table
+      const { error: selectedError } = await supabase
+        .from('selected_campaigns')
+        .delete()
+        .eq('id', campaign.id);
+
+      if (selectedError) {
+        console.error('Error deleting from selected_campaigns:', selectedError);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to delete selected campaign"
+        });
+        return;
+      }
+
+      console.log('Campaign successfully deleted');
+      toast({
+        title: "Success",
+        description: "Campaign deleted successfully"
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Unexpected error during deletion:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to delete campaign"
+        description: "An unexpected error occurred"
       });
-      return;
     }
-
-    // Delete from selected_campaigns table
-    const { error: selectedError } = await supabase
-      .from('selected_campaigns')
-      .delete()
-      .eq('title', campaign.title);
-
-    if (selectedError) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete selected campaign"
-      });
-      return;
-    }
-
-    toast({
-      title: "Success",
-      description: "Campaign deleted successfully"
-    });
-
-    queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-    onOpenChange(false);
   };
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[80vh] overflow-y-auto">
         <div className="grid grid-cols-2 gap-6 mb-6">
-          {/* Left side - Image */}
           <div className="relative aspect-video">
             <img
               src={campaign.media_url}
@@ -78,7 +90,6 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
             />
           </div>
           
-          {/* Right side - Details */}
           <div className="space-y-4">
             <h2 className="text-2xl font-bold">{campaign.title}</h2>
             <p className="text-gray-600">{campaign.description}</p>
@@ -101,7 +112,6 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
               <p><span className="font-medium">Target Audience:</span> {campaign.target_audience}</p>
               <p><span className="font-medium">Platforms:</span> {campaign.platforms?.join(", ")}</p>
               
-              {/* Cancel Campaign Button */}
               <Button
                 variant="destructive"
                 className="w-full mt-4"
@@ -113,7 +123,6 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
           </div>
         </div>
         
-        {/* Bottom half - Metrics */}
         <div className="mt-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-semibold">Performance Metrics</h3>
