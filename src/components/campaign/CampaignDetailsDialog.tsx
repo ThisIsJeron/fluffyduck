@@ -26,16 +26,32 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
   };
 
   const handleDelete = async () => {
-    const { error } = await supabase
+    // Delete from campaigns table
+    const { error: campaignsError } = await supabase
       .from('campaigns')
       .delete()
       .eq('id', campaign.id);
 
-    if (error) {
+    if (campaignsError) {
       toast({
         variant: "destructive",
         title: "Error",
         description: "Failed to delete campaign"
+      });
+      return;
+    }
+
+    // Delete from selected_campaigns table
+    const { error: selectedError } = await supabase
+      .from('selected_campaigns')
+      .delete()
+      .eq('title', campaign.title);
+
+    if (selectedError) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete selected campaign"
       });
       return;
     }
