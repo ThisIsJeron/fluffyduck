@@ -81,28 +81,39 @@ const CreateCampaign = () => {
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      // Generate a placeholder image URL since we're skipping file upload
-      const placeholderImageUrl = "https://placehold.co/600x400";
+      // Check if we have an uploaded file
+      if (uploadedFiles.length === 0) {
+        toast({
+          title: "Error",
+          description: "Please upload at least one image",
+          variant: "destructive",
+        });
+        setIsGenerating(false);
+        return;
+      }
 
-      // Generate mock campaigns with the placeholder image
+      // Use the preview URL from the first uploaded file
+      const imageUrl = uploadedFiles[0].preview;
+
+      // Generate mock campaigns with the uploaded image
       const mockCampaigns: Campaign[] = [
         {
           id: crypto.randomUUID(),
-          media_url: placeholderImageUrl,
+          media_url: imageUrl,
           caption: "Elevate your events with our premium catering service! 🍽️✨",
           hashtags: ["CateringExcellence", "PremiumDining", "EventPlanning"],
           selected: false
         },
         {
           id: crypto.randomUUID(),
-          media_url: placeholderImageUrl,
+          media_url: imageUrl,
           caption: "Create unforgettable moments with exceptional cuisine 🎉",
           hashtags: ["LuxuryCatering", "EventCatering", "FineFood"],
           selected: false
         },
         {
           id: crypto.randomUUID(),
-          media_url: placeholderImageUrl,
+          media_url: imageUrl,
           caption: "Transform your special day with our exquisite catering 🌟",
           hashtags: ["GourmetCatering", "SpecialEvents", "CulinaryArt"],
           selected: false
