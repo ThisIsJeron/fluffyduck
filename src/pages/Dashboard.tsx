@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Campaign } from "@/types/campaign";
 import { CampaignDetailsDialog } from "@/components/campaign/CampaignDetailsDialog";
 import { useState } from "react";
-import { format, isBefore, isAfter, startOfToday } from "date-fns";
+import { format, isBefore, startOfToday } from "date-fns";
 
 const Dashboard = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
@@ -18,7 +18,7 @@ const Dashboard = () => {
       const { data, error } = await supabase
         .from('campaigns')
         .select('*')
-        .order('end_date', { ascending: true });
+        .order('end_date', { ascending: false }); // Changed to descending to show most recent past campaigns first
       
       if (error) throw error;
 
@@ -35,10 +35,6 @@ const Dashboard = () => {
 
   const pastCampaigns = campaigns?.filter(campaign => 
     campaign.end_date && isBefore(campaign.end_date, today)
-  ) || [];
-
-  const currentAndUpcomingCampaigns = campaigns?.filter(campaign => 
-    campaign.end_date && isAfter(campaign.end_date, today)
   ) || [];
 
   const renderMetrics = (campaign: Campaign) => (
@@ -76,11 +72,7 @@ const Dashboard = () => {
         <h3 className="font-medium mb-2">{campaign.title}</h3>
         <div className="text-sm text-gray-500 mb-2">
           {campaign.end_date && (
-            <p>
-              {isBefore(campaign.end_date, today)
-                ? `Ended ${format(campaign.end_date, 'MMM dd, yyyy')}`
-                : `Ends ${format(campaign.end_date, 'MMM dd, yyyy')}`}
-            </p>
+            <p>Ended {format(campaign.end_date, 'MMM dd, yyyy')}</p>
           )}
         </div>
         {renderMetrics(campaign)}
@@ -92,32 +84,7 @@ const Dashboard = () => {
     <div className="flex min-h-screen bg-secondary">
       <Sidebar />
       <main className="flex-1 p-8">
-        <div className="max-w-7xl mx-auto space-y-12">
-          {/* Current & Upcoming Campaigns Section */}
-          <section>
-            <div className="flex justify-between items-center mb-8">
-              <h1 className="text-2xl font-bold">Current & Upcoming Campaigns</h1>
-              <button className="bg-accent text-accent-foreground px-4 py-2 rounded-lg">
-                View Collection
-              </button>
-            </div>
-
-            {isLoading ? (
-              <div className="text-center py-12">Loading campaigns...</div>
-            ) : currentAndUpcomingCampaigns.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {currentAndUpcomingCampaigns.map((campaign) => (
-                  <CampaignCard key={campaign.id} campaign={campaign} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-gray-500">
-                No upcoming campaigns
-              </div>
-            )}
-          </section>
-
-          {/* Past Campaigns Section */}
+        <div className="max-w-7xl mx-auto">
           <section>
             <div className="flex justify-between items-center mb-8">
               <h1 className="text-2xl font-bold">Past Campaigns</h1>

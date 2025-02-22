@@ -1,12 +1,12 @@
 
 import { Link, useLocation } from "react-router-dom";
 import { 
-  Home,
   PlusCircle,
   Clock,
   Users,
   Image,
-  Settings
+  Settings,
+  History
 } from "lucide-react";
 
 const navItems = [
@@ -17,7 +17,7 @@ const navItems = [
   },
   {
     label: "Past Campaigns",
-    icon: Home,
+    icon: History,
     href: "/dashboard"
   },
   {
