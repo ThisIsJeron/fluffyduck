@@ -22,7 +22,7 @@ const Index = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <a href="/" className="text-xl font-semibold text-primary">
-              CateringAI
+              FluffyDuck
             </a>
             <div className="hidden md:flex space-x-8">
               <a href="#features" className="text-gray-600 hover:text-accent transition-colors">Features</a>
@@ -207,7 +207,7 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-3 gap-8">
             <div>
-              <h3 className="text-xl font-semibold mb-4">CateringAI</h3>
+              <h3 className="text-xl font-semibold mb-4">FluffyDuck</h3>
               <p className="text-gray-400">
                 Transforming restaurant operations with artificial intelligence.
               </p>
@@ -217,7 +217,7 @@ const Index = () => {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Mail className="w-5 h-5" />
-                  <span className="text-gray-400">contact@cateringai.com</span>
+                  <span className="text-gray-400">contact@fluffyduck.ai</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-5 h-5" />
@@ -235,7 +235,7 @@ const Index = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; {new Date().getFullYear()} CateringAI. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} FluffyDuck. All rights reserved.</p>
           </div>
         </div>
       </footer>
