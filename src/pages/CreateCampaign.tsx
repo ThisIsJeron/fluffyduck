@@ -52,19 +52,23 @@ const CreateCampaign = () => {
         try {
           const base64data = reader.result as string;
           
-          // Insert campaign with base64 image data
+          // Insert campaign into selected_campaigns table
           const { data, error } = await supabase
-            .from('campaigns')
+            .from('selected_campaigns')
             .insert({
               media_url: base64data,
               caption: selectedCampaign.caption,
               hashtags: selectedCampaign.hashtags,
-              selected: true,
               title: campaignName,
               description: description,
               cadence: cadence,
               target_audience: targetAudience,
               platforms: platforms ? [platforms] : [],
+              metrics: {
+                likes: 0,
+                comments: 0,
+                views: 0
+              }
             })
             .select()
             .single();
@@ -74,6 +78,12 @@ const CreateCampaign = () => {
           if (!data) {
             throw new Error('Campaign was not created');
           }
+
+          // Update the status in campaigns table
+          await supabase
+            .from('campaigns')
+            .update({ selected: true })
+            .eq('title', campaignName);
 
           navigate(`/campaign-completion/${data.id}`);
         } catch (error) {
