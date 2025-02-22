@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
@@ -30,28 +29,38 @@ const CampaignCompletion = () => {
   const [loading, setLoading] = useState(true);
   const state = location.state as LocationState;
 
-  // Fetch campaign data
+  console.log("Location state:", location.state);
+  console.log("Campaign ID from state:", state?.campaignId);
+
   useEffect(() => {
     const fetchCampaign = async () => {
-      if (!state?.campaignId) {
-        toast.error("Campaign ID not found");
+      if (!location.state || !state?.campaignId) {
+        console.error("No campaign ID in navigation state:", location.state);
+        toast.error("Campaign ID not found in navigation state");
         setLoading(false);
         return;
       }
 
       try {
+        console.log("Fetching campaign with ID:", state.campaignId);
+        
         const { data, error } = await supabase
           .from('campaigns')
           .select()
           .eq('id', state.campaignId)
-          .single();
+          .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
 
         if (data) {
+          console.log("Campaign data retrieved:", data);
           setCampaign(data);
         } else {
-          toast.error("Campaign not found");
+          console.error("No campaign found with ID:", state.campaignId);
+          toast.error("Campaign not found in database");
         }
       } catch (error) {
         console.error('Error fetching campaign:', error);
@@ -62,11 +71,10 @@ const CampaignCompletion = () => {
     };
 
     fetchCampaign();
-  }, [state?.campaignId]);
+  }, [location.state, state?.campaignId]);
 
-  // Handle confetti effect
   useEffect(() => {
-    if (!campaign) return; // Only show confetti when campaign is loaded
+    if (!campaign) return;
 
     const duration = 3 * 1000;
     const animationEnd = Date.now() + duration;
@@ -94,7 +102,6 @@ const CampaignCompletion = () => {
     return () => clearInterval(interval);
   }, [campaign]);
 
-  // Show loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-secondary p-6 flex items-center justify-center">
@@ -103,7 +110,6 @@ const CampaignCompletion = () => {
     );
   }
 
-  // If we don't have campaign data, show a fallback UI
   if (!campaign) {
     return (
       <div className="min-h-screen bg-secondary p-6 flex flex-col items-center justify-center">
