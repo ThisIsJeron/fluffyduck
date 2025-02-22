@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -86,15 +85,14 @@ export const useCampaignCreation = () => {
         throw new Error('Campaign was not created');
       }
 
-      // No need to update campaigns table here since we're just selecting one
-      
-      // Use navigate instead of window.location
       navigate(`/campaign-completion/${data.id}`);
-      
-      toast({
-        title: "Success",
-        description: "Campaign selected successfully",
-      });
+
+      setTimeout(() => {
+        toast({
+          title: "Success",
+          description: "Campaign selected successfully",
+        });
+      }, 100);
     } catch (error) {
       console.error('Error:', error);
       toast({
@@ -224,7 +222,7 @@ export const useCampaignCreation = () => {
     setCampaignName,
     setDescription,
     setCadence,
-    setTargetAudience,
+    setTargetAudienceChange: setTargetAudience,
     setPlatforms,
     setStartDate,
     setEndDate
