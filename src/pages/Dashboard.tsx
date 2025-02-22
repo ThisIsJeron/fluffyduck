@@ -6,8 +6,11 @@ import { MessageCircle, Heart, Eye } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { Campaign } from "@/types/campaign";
+import { CampaignDetailsDialog } from "@/components/campaign/CampaignDetailsDialog";
 
 const Dashboard = () => {
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  
   const { data: campaigns, isLoading } = useQuery({
     queryKey: ['campaigns'],
     queryFn: async () => {
@@ -59,7 +62,8 @@ const Dashboard = () => {
                   key={campaign.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                  className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => setSelectedCampaign(campaign)}
                 >
                   <div className="aspect-video relative overflow-hidden">
                     <img
@@ -78,6 +82,14 @@ const Dashboard = () => {
           )}
         </div>
       </main>
+      
+      {selectedCampaign && (
+        <CampaignDetailsDialog
+          campaign={selectedCampaign}
+          open={!!selectedCampaign}
+          onOpenChange={(open) => !open && setSelectedCampaign(null)}
+        />
+      )}
     </div>
   );
 };
