@@ -20,7 +20,13 @@ const Dashboard = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data || [];
+      
+      // Transform the dates from strings to Date objects
+      return (data || []).map(campaign => ({
+        ...campaign,
+        start_date: campaign.start_date ? new Date(campaign.start_date) : null,
+        end_date: campaign.end_date ? new Date(campaign.end_date) : null
+      }));
     }
   });
 
