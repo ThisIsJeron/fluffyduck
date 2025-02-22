@@ -14,11 +14,13 @@ interface CampaignDetailsDialogProps {
   campaign: Campaign;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onDelete: () => Promise<void>;
 }
 
-export function CampaignDetailsDialog({ campaign, open, onOpenChange }: CampaignDetailsDialogProps) {
+export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }: CampaignDetailsDialogProps) {
   const [timeScale, setTimeScale] = useState<"day" | "week">("day");
   const queryClient = useQueryClient();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const formatDate = (date: Date | null) => {
     if (!date) return "Not set";
@@ -26,8 +28,11 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
   };
 
   const handleDelete = async () => {
+    if (isDeleting) return; // Prevent multiple clicks
+    
     try {
-      console.log('Attempting to delete campaign:', campaign);
+      setIsDeleting(true);
+      console.log('Starting campaign deletion:', campaign.id);
       
       // Delete from campaigns table
       const { error: campaignsError } = await supabase
@@ -45,6 +50,8 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
         return;
       }
 
+      console.log('Successfully deleted from campaigns table');
+
       // Delete from selected_campaigns table
       const { error: selectedError } = await supabase
         .from('selected_campaigns')
@@ -61,15 +68,15 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
         return;
       }
 
-      console.log('Campaign successfully deleted');
+      console.log('Successfully deleted from selected_campaigns table');
+      
       toast({
         title: "Success",
         description: "Campaign deleted successfully"
       });
 
-      // Force a refresh of all campaign-related queries
-      await queryClient.invalidateQueries({ queryKey: ['campaigns'] });
       onOpenChange(false);
+      await onDelete();
     } catch (error) {
       console.error('Unexpected error during deletion:', error);
       toast({
@@ -77,6 +84,8 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
         title: "Error",
         description: "An unexpected error occurred"
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
   

@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { MessageCircle, Heart, Eye } from "lucide-react";
@@ -12,18 +13,23 @@ import { useLocation } from "react-router-dom";
 const Dashboard = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const location = useLocation();
-  const isPastRoute = location.pathname === '/dashboard/past';  // Updated route check
+  const isPastRoute = location.pathname === '/dashboard/past';
   
-  const { data: campaigns, isLoading } = useQuery({
+  const { data: campaigns, isLoading, refetch } = useQuery({
     queryKey: ['campaigns'],
     queryFn: async () => {
+      console.log('Fetching campaigns...');
       const { data, error } = await supabase
         .from('campaigns')
         .select('*')
         .order('end_date', { ascending: !isPastRoute });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching campaigns:', error);
+        throw error;
+      }
 
+      console.log('Fetched campaigns:', data);
       return (data || []).map(campaign => ({
         ...campaign,
         start_date: campaign.start_date ? new Date(campaign.start_date) : null,
@@ -61,6 +67,12 @@ const Dashboard = () => {
     </div>
   );
 
+  const handleCampaignDeleted = async () => {
+    console.log('Campaign deleted, refreshing data...');
+    await refetch();
+    setSelectedCampaign(null);
+  };
+
   const CampaignCard = ({ campaign }: { campaign: Campaign }) => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -81,8 +93,8 @@ const Dashboard = () => {
           {campaign.end_date && (
             <p>
               {isPastRoute 
-                ? `Ends ${format(campaign.end_date, 'MMM dd, yyyy')}`
-                : `Ended ${format(campaign.end_date, 'MMM dd, yyyy')}`
+                ? `Ended ${format(campaign.end_date, 'MMM dd, yyyy')}`
+                : `Ends ${format(campaign.end_date, 'MMM dd, yyyy')}`
               }
             </p>
           )}
@@ -126,6 +138,7 @@ const Dashboard = () => {
           campaign={selectedCampaign}
           open={!!selectedCampaign}
           onOpenChange={(open) => !open && setSelectedCampaign(null)}
+          onDelete={handleCampaignDeleted}
         />
       )}
     </div>
