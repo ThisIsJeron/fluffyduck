@@ -20,8 +20,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/create-campaign" element={<CreateCampaign />} />
-          <Route path="/campaign-completion" element={<CampaignCompletion />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/campaign-completion/:id" element={<CampaignCompletion />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

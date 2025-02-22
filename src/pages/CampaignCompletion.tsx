@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -18,36 +18,30 @@ interface Campaign {
   platforms: string[];
 }
 
-interface LocationState {
-  campaignId: string;
-}
-
 const CampaignCompletion = () => {
-  const location = useLocation();
+  const { id } = useParams();
   const navigate = useNavigate();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
-  const state = location.state as LocationState;
 
-  console.log("Location state:", location.state);
-  console.log("Campaign ID from state:", state?.campaignId);
+  console.log("Campaign ID from URL:", id);
 
   useEffect(() => {
     const fetchCampaign = async () => {
-      if (!location.state || !state?.campaignId) {
-        console.error("No campaign ID in navigation state:", location.state);
-        toast.error("Campaign ID not found in navigation state");
+      if (!id) {
+        console.error("No campaign ID in URL");
+        toast.error("Campaign ID not found");
         setLoading(false);
         return;
       }
 
       try {
-        console.log("Fetching campaign with ID:", state.campaignId);
+        console.log("Fetching campaign with ID:", id);
         
         const { data, error } = await supabase
           .from('campaigns')
           .select()
-          .eq('id', state.campaignId)
+          .eq('id', id)
           .maybeSingle();
 
         if (error) {
@@ -59,7 +53,7 @@ const CampaignCompletion = () => {
           console.log("Campaign data retrieved:", data);
           setCampaign(data);
         } else {
-          console.error("No campaign found with ID:", state.campaignId);
+          console.error("No campaign found with ID:", id);
           toast.error("Campaign not found in database");
         }
       } catch (error) {
@@ -71,7 +65,7 @@ const CampaignCompletion = () => {
     };
 
     fetchCampaign();
-  }, [location.state, state?.campaignId]);
+  }, [id]);
 
   useEffect(() => {
     if (!campaign) return;

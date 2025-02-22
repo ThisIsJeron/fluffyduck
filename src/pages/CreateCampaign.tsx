@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -75,13 +74,8 @@ const CreateCampaign = () => {
             throw new Error('Campaign was not created');
           }
 
-          // Navigate with campaign ID
-          navigate('/campaign-completion', {
-            state: {
-              campaignId: data.id
-            },
-            replace: true // Use replace to prevent back navigation issues
-          });
+          // Navigate using URL parameter instead of state
+          navigate(`/campaign-completion/${data.id}`);
         } catch (error) {
           console.error('Error:', error);
           toast({
