@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Campaign, UploadedFile } from "@/types/campaign";
 
 export const useCampaignCreation = () => {
-  // Group all useState hooks together at the top
   const navigate = useNavigate();
   const { toast } = useToast();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -18,6 +17,8 @@ export const useCampaignCreation = () => {
   const [targetAudience, setTargetAudience] = useState("");
   const [platforms, setPlatforms] = useState("");
   const [base64Image, setBase64Image] = useState("");
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -63,6 +64,8 @@ export const useCampaignCreation = () => {
           cadence: cadence,
           target_audience: targetAudience,
           platforms: platforms ? [platforms] : [],
+          start_date: startDate?.toISOString(),
+          end_date: endDate?.toISOString(),
           metrics: {
             likes: 0,
             comments: 0,
@@ -117,6 +120,8 @@ export const useCampaignCreation = () => {
             target_audience: targetAudience,
             platforms: platforms ? [platforms] : [],
             selected: false,
+            start_date: startDate?.toISOString(),
+            end_date: endDate?.toISOString(),
           })
           .select()
           .single();
@@ -129,21 +134,42 @@ export const useCampaignCreation = () => {
             media_url: base64Image,
             caption: "Elevate your events with our premium catering service! 🍽️✨",
             hashtags: ["CateringExcellence", "PremiumDining", "EventPlanning"],
-            selected: false
+            selected: false,
+            title: campaignName,
+            description: description,
+            cadence: cadence,
+            target_audience: targetAudience,
+            platforms: platforms ? [platforms] : [],
+            start_date: startDate,
+            end_date: endDate
           },
           {
             id: crypto.randomUUID(),
             media_url: base64Image,
             caption: "Create unforgettable moments with exceptional cuisine 🎉",
             hashtags: ["LuxuryCatering", "EventCatering", "FineFood"],
-            selected: false
+            selected: false,
+            title: campaignName,
+            description: description,
+            cadence: cadence,
+            target_audience: targetAudience,
+            platforms: platforms ? [platforms] : [],
+            start_date: startDate,
+            end_date: endDate
           },
           {
             id: crypto.randomUUID(),
             media_url: base64Image,
             caption: "Transform your special day with our exquisite catering 🌟",
             hashtags: ["GourmetCatering", "SpecialEvents", "CulinaryArt"],
-            selected: false
+            selected: false,
+            title: campaignName,
+            description: description,
+            cadence: cadence,
+            target_audience: targetAudience,
+            platforms: platforms ? [platforms] : [],
+            start_date: startDate,
+            end_date: endDate
           }
         ];
 
@@ -181,6 +207,8 @@ export const useCampaignCreation = () => {
     cadence,
     targetAudience,
     platforms,
+    startDate,
+    endDate,
     handleFileUpload,
     removeFile,
     handleSelect,
@@ -189,6 +217,8 @@ export const useCampaignCreation = () => {
     setDescription,
     setCadence,
     setTargetAudience,
-    setPlatforms
+    setPlatforms,
+    setStartDate,
+    setEndDate
   };
 };

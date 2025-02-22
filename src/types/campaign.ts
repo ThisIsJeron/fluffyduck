@@ -14,4 +14,6 @@ export interface Campaign {
   cadence: string;
   target_audience: string;
   platforms: string[];
+  start_date: Date | null;
+  end_date: Date | null;
 }

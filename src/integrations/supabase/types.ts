@@ -15,11 +15,13 @@ export type Database = {
           caption: string | null
           created_at: string | null
           description: string | null
+          end_date: string | null
           hashtags: string[] | null
           id: string
           media_url: string | null
           platforms: string[] | null
           selected: boolean | null
+          start_date: string | null
           target_audience: string | null
           title: string
         }
@@ -28,11 +30,13 @@ export type Database = {
           caption?: string | null
           created_at?: string | null
           description?: string | null
+          end_date?: string | null
           hashtags?: string[] | null
           id?: string
           media_url?: string | null
           platforms?: string[] | null
           selected?: boolean | null
+          start_date?: string | null
           target_audience?: string | null
           title: string
         }
@@ -41,11 +45,13 @@ export type Database = {
           caption?: string | null
           created_at?: string | null
           description?: string | null
+          end_date?: string | null
           hashtags?: string[] | null
           id?: string
           media_url?: string | null
           platforms?: string[] | null
           selected?: boolean | null
+          start_date?: string | null
           target_audience?: string | null
           title?: string
         }
@@ -57,11 +63,13 @@ export type Database = {
           caption: string | null
           created_at: string | null
           description: string | null
+          end_date: string | null
           hashtags: string[] | null
           id: string
           media_url: string | null
           metrics: Json | null
           platforms: string[] | null
+          start_date: string | null
           target_audience: string | null
           title: string
         }
@@ -70,11 +78,13 @@ export type Database = {
           caption?: string | null
           created_at?: string | null
           description?: string | null
+          end_date?: string | null
           hashtags?: string[] | null
           id?: string
           media_url?: string | null
           metrics?: Json | null
           platforms?: string[] | null
+          start_date?: string | null
           target_audience?: string | null
           title: string
         }
@@ -83,11 +93,13 @@ export type Database = {
           caption?: string | null
           created_at?: string | null
           description?: string | null
+          end_date?: string | null
           hashtags?: string[] | null
           id?: string
           media_url?: string | null
           metrics?: Json | null
           platforms?: string[] | null
+          start_date?: string | null
           target_audience?: string | null
           title?: string
         }

@@ -12,6 +12,8 @@ const CreateCampaign = () => {
     cadence,
     targetAudience,
     platforms,
+    startDate,
+    endDate,
     handleFileUpload,
     removeFile,
     handleSelect,
@@ -20,7 +22,9 @@ const CreateCampaign = () => {
     setDescription,
     setCadence,
     setTargetAudience,
-    setPlatforms
+    setPlatforms,
+    setStartDate,
+    setEndDate
   } = useCampaignCreation();
 
   return (
@@ -35,6 +39,8 @@ const CreateCampaign = () => {
           cadence={cadence}
           targetAudience={targetAudience}
           platforms={platforms}
+          startDate={startDate}
+          endDate={endDate}
           onFileUpload={handleFileUpload}
           onRemoveFile={removeFile}
           onSelect={handleSelect}
@@ -44,6 +50,8 @@ const CreateCampaign = () => {
           onCadenceChange={setCadence}
           onTargetAudienceChange={setTargetAudience}
           onPlatformsChange={setPlatforms}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
         />
       </div>
     </div>
