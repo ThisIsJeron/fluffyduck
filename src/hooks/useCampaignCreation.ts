@@ -6,6 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Campaign, UploadedFile } from "@/types/campaign";
 
 export const useCampaignCreation = () => {
+  // Group all useState hooks together at the top
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -14,9 +17,7 @@ export const useCampaignCreation = () => {
   const [cadence, setCadence] = useState("");
   const [targetAudience, setTargetAudience] = useState("");
   const [platforms, setPlatforms] = useState("");
-  const [base64Image, setBase64Image] = useState<string>("");
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const [base64Image, setBase64Image] = useState("");
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -24,13 +25,15 @@ export const useCampaignCreation = () => {
       const reader = new FileReader();
       
       reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setBase64Image(base64String);
-        
-        setUploadedFiles(prev => [...prev, {
-          ...file,
-          preview: URL.createObjectURL(file)
-        }]);
+        if (reader.result) {
+          const base64String = reader.result as string;
+          setBase64Image(base64String);
+          
+          setUploadedFiles(prev => [...prev, {
+            ...file,
+            preview: URL.createObjectURL(file)
+          }]);
+        }
       };
       
       reader.readAsDataURL(file);
@@ -52,7 +55,7 @@ export const useCampaignCreation = () => {
       const { data, error } = await supabase
         .from('selected_campaigns')
         .insert({
-          media_url: base64Image, // Use the stored base64 image
+          media_url: base64Image,
           caption: selectedCampaign.caption,
           hashtags: selectedCampaign.hashtags,
           title: campaignName,
