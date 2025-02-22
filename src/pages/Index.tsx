@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Robot, Users, Briefcase, ChartBar, Mail, Phone, ArrowRight } from "lucide-react";
+import { Bot, Users, Briefcase, ChartBar, Mail, Phone, ArrowRight } from "lucide-react";
 
 const Index = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,7 +65,7 @@ const Index = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               {
-                icon: <Robot className="w-8 h-8 text-accent" />,
+                icon: <Bot className="w-8 h-8 text-accent" />,
                 title: "AI-Powered Communication",
                 description: "Instant responses to customer inquiries 24/7"
               },
