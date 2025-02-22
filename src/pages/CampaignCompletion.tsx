@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
@@ -39,7 +40,7 @@ const CampaignCompletion = () => {
         console.log("Fetching campaign with ID:", id);
         
         const { data, error } = await supabase
-          .from('campaigns')
+          .from('selected_campaigns')  // Changed from 'campaigns' to 'selected_campaigns'
           .select()
           .eq('id', id)
           .maybeSingle();
