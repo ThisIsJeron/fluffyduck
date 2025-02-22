@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Campaign } from "@/types/campaign";
@@ -66,7 +67,8 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange }: Campaign
         description: "Campaign deleted successfully"
       });
 
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      // Force a refresh of all campaign-related queries
+      await queryClient.invalidateQueries({ queryKey: ['campaigns'] });
       onOpenChange(false);
     } catch (error) {
       console.error('Unexpected error during deletion:', error);
