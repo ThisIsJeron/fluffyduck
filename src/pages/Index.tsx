@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Bot, Users, Briefcase, ChartBar, Mail, Phone, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,9 +29,12 @@ const Index = () => {
               <a href="#how-it-works" className="text-gray-600 hover:text-accent transition-colors">How it Works</a>
               <a href="#contact" className="text-gray-600 hover:text-accent transition-colors">Contact</a>
             </div>
-            <button className="bg-primary text-white px-6 py-2 rounded-full hover:bg-accent transition-colors">
+            <Link 
+              to="/create-campaign" 
+              className="bg-primary text-white px-6 py-2 rounded-full hover:bg-accent transition-colors"
+            >
               Get Started
-            </button>
+            </Link>
           </div>
         </div>
       </nav>
