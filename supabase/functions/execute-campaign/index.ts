@@ -9,11 +9,37 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 };
 
+async function executePicaCommand(title: string, caption: string) {
+  const PICA_API_KEY = Deno.env.get("PICA_SECRET_KEY");
+  if (!PICA_API_KEY) {
+    throw new Error("PICA_SECRET_KEY is not set");
+  }
+
+  const response = await fetch("https://api.picahq.com/v1/execute", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${PICA_API_KEY}`
+    },
+    body: JSON.stringify({
+      command: `send email to fluffyduck0222@gmail.com with subject "${title}" and content "${caption}" using gmail`
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Pica API error:', errorText);
+    throw new Error(`Pica API error: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
 serve(async (req) => {
   // IMPORTANT: Handle CORS preflight requests first
   if (req.method === 'OPTIONS') {
     return new Response(null, {
-      status: 204, // Successful preflight should return 204
+      status: 204,
       headers: corsHeaders
     });
   }
@@ -26,17 +52,16 @@ serve(async (req) => {
       throw new Error('Missing required campaign data');
     }
 
-    // For now, we'll just log the campaign data and return a success response
-    // We can implement the actual email sending logic later
-    console.log('Campaign to process:', {
-      title: campaign.title,
-      caption: campaign.caption
-    });
+    // Execute the Pica command
+    console.log('Executing Pica command for campaign:', campaign.title);
+    const result = await executePicaCommand(campaign.title, campaign.caption);
+    console.log('Pica execution result:', result);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        result: `Successfully processed campaign: ${campaign.title}`
+        result: `Successfully processed campaign: ${campaign.title}`,
+        pica_response: result
       }),
       { 
         headers: { 
