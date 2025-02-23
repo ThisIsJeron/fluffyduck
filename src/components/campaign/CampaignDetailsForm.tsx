@@ -83,8 +83,8 @@ const CampaignDetailsForm = ({
             <SelectContent>
               <SelectItem value="instagram">Instagram</SelectItem>
               <SelectItem value="facebook">Facebook</SelectItem>
-              <SelectItem value="youtube">YouTube</SelectItem>
-              <SelectItem value="linkedin">LinkedIn</SelectItem>
+              <SelectItem value="email">Email</SelectItem>
+              <SelectItem value="sms">SMS</SelectItem>
             </SelectContent>
           </Select>
         </div>
