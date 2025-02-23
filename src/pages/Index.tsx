@@ -48,7 +48,7 @@ const Index = () => {
             className="max-w-3xl mx-auto"
           >
             <h1 className="text-4xl md:text-6xl font-bold text-primary mb-6">
-              Transform Your Restaurant's Digital Presence with AI
+              FluffyDuck: Your AI-Powered Assistant for Local Restaurant Marketing & Reservations
             </h1>
             <p className="text-xl text-gray-600 mb-8">
               Automate customer interactions, streamline catering operations, and grow your business effortlessly.
@@ -70,7 +70,7 @@ const Index = () => {
               {
                 icon: <Bot className="w-8 h-8 text-accent" />,
                 title: "AI-Powered Communication",
-                description: "Instant responses to customer inquiries 24/7. Give our reservation system a try!"
+                description: "Instant responses to customer inquiries 24/7. Call (415) 851-8144 to give our reservation system a try!"
               },
               {
                 icon: <Briefcase className="w-8 h-8 text-accent" />,
