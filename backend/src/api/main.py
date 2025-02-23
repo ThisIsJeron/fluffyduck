@@ -107,6 +107,7 @@ async def enhance_marketing_image(
         )
 
         # Configure enhancement parameters
+        # Configure enhancement parameters
         arguments = {
             "prompt": prompt,
             "negative_prompt": (
@@ -116,13 +117,13 @@ async def enhance_marketing_image(
                 "artificial textures, synthetic look"
             ),
             "image_size": "square_hd",
-            "num_inference_steps": 75,     # Increased for better quality
-            "guidance_scale": 8.5,         # Adjusted for better adherence to prompt
+            "num_inference_steps": 50,     # Changed from 75 to 50 (maximum allowed)
+            "guidance_scale": 8.5,
             "num_images": 3,
             "scheduler": "DPM++ 2M Karras",
-            "image_guidance_scale": 1.8,   # Increased to preserve more of original image
+            "image_guidance_scale": 1.8,
             "reference_image": reference_image_data,
-            "reference_weight": 0.9        # Increased to maintain more original content
+            "reference_weight": 0.9
         }
 
         print("Calling FAL API for image enhancement...")
