@@ -75,75 +75,22 @@ const CampaignCreationForm = ({
           onRemoveFile={onRemoveFile}
         />
 
-        <div className="space-y-6">
-          <CampaignDetailsForm
-            campaignName={campaignName}
-            description={description}
-            cadence={cadence}
-            targetAudience={targetAudience}
-            platforms={platforms}
-            onCampaignNameChange={onCampaignNameChange}
-            onDescriptionChange={onDescriptionChange}
-            onCadenceChange={onCadenceChange}
-            onTargetAudienceChange={onTargetAudienceChange}
-            onPlatformsChange={onPlatformsChange}
-          />
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Start Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !startDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "PPP") : "Select start date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={onStartDateChange}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="space-y-2">
-              <Label>End Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !endDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "PPP") : "Select end date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={endDate}
-                    onSelect={onEndDateChange}
-                    disabled={(date) => startDate ? date < startDate : false}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-        </div>
+        <CampaignDetailsForm
+          campaignName={campaignName}
+          description={description}
+          cadence={cadence}
+          targetAudience={targetAudience}
+          platforms={platforms}
+          startDate={startDate}
+          endDate={endDate}
+          onCampaignNameChange={onCampaignNameChange}
+          onDescriptionChange={onDescriptionChange}
+          onCadenceChange={onCadenceChange}
+          onTargetAudienceChange={onTargetAudienceChange}
+          onPlatformsChange={onPlatformsChange}
+          onStartDateChange={onStartDateChange}
+          onEndDateChange={onEndDateChange}
+        />
       </div>
 
       <div className="mt-8 text-center">
@@ -152,14 +99,23 @@ const CampaignCreationForm = ({
           disabled={isGenerating}
           className="bg-accent hover:bg-accent/90 text-white px-12 py-6 text-lg rounded-xl"
         >
-          {isGenerating ? "Generating Campaign..." : "Generate Campaign"}
+          {isGenerating ? (
+            <>
+              <span className="animate-spin mr-2">⚡</span>
+              Generating Campaign...
+            </>
+          ) : (
+            "Generate Campaign"
+          )}
         </Button>
       </div>
 
-      <GeneratedCampaigns 
-        campaigns={campaigns}
-        onSelect={onSelect}
-      />
+      {campaigns.length > 0 && (
+        <GeneratedCampaigns 
+          campaigns={campaigns}
+          onSelect={onSelect}
+        />
+      )}
     </motion.div>
   );
 };
