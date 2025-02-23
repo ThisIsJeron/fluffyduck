@@ -96,8 +96,6 @@ const CreateCampaign = () => {
       formData.append('campaign', JSON.stringify(campaignData));
       
       const file = uploadedFiles[0];
-      
-      // Directly use the file object since we already created it properly during upload
       formData.append('reference_image', file);
 
       console.log('Sending data to backend:', {
@@ -112,19 +110,24 @@ const CreateCampaign = () => {
         body: formData
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to generate images');
+        // Handle validation errors from FastAPI
+        if (responseData.detail && Array.isArray(responseData.detail)) {
+          const errorMessages = responseData.detail.map((error: any) => error.msg).join(', ');
+          throw new Error(errorMessages);
+        }
+        throw new Error(responseData.detail || 'Failed to generate images');
       }
 
-      const result = await response.json();
-      console.log('API Response:', result);
+      console.log('API Response:', responseData);
 
-      if (!result.generated_images || !Array.isArray(result.generated_images)) {
+      if (!responseData.generated_images || !Array.isArray(responseData.generated_images)) {
         throw new Error('Invalid response format from API');
       }
       
-      const generatedCampaigns: Campaign[] = result.generated_images.map((imageUrl: string) => ({
+      const generatedCampaigns: Campaign[] = responseData.generated_images.map((imageUrl: string) => ({
         id: crypto.randomUUID(),
         media_url: imageUrl,
         caption: `${campaignName} - ${description.substring(0, 50)}...`,
@@ -155,7 +158,7 @@ const CreateCampaign = () => {
       console.error('Error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate campaigns",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
