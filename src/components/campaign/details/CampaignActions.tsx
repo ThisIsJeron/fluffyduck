@@ -28,8 +28,10 @@ ${campaign.hashtags?.length ? 'Hashtags: ' + campaign.hashtags.join(' ') : ''}`.
       
       console.log('Making GET request to:', url);
       await fetch(url, { 
-        mode: 'no-cors',
-        method: 'GET'
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
 
       toast({
