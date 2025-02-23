@@ -3,6 +3,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 
 interface CampaignDetailsFormProps {
   campaignName: string;
@@ -10,11 +15,15 @@ interface CampaignDetailsFormProps {
   cadence: string;
   targetAudience: string;
   platforms: string;
+  startDate: Date | null;
+  endDate: Date | null;
   onCampaignNameChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onCadenceChange: (value: string) => void;
   onTargetAudienceChange: (value: string) => void;
   onPlatformsChange: (value: string) => void;
+  onStartDateChange: (value: Date | null) => void;
+  onEndDateChange: (value: Date | null) => void;
 }
 
 const CampaignDetailsForm = ({
@@ -23,11 +32,15 @@ const CampaignDetailsForm = ({
   cadence,
   targetAudience,
   platforms,
+  startDate,
+  endDate,
   onCampaignNameChange,
   onDescriptionChange,
   onCadenceChange,
   onTargetAudienceChange,
   onPlatformsChange,
+  onStartDateChange,
+  onEndDateChange,
 }: CampaignDetailsFormProps) => {
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm">
@@ -46,7 +59,7 @@ const CampaignDetailsForm = ({
 
         <div>
           <Label>Campaign Cadence</Label>
-          <Select onValueChange={onCadenceChange}>
+          <Select onValueChange={onCadenceChange} value={cadence}>
             <SelectTrigger>
               <SelectValue placeholder="Select frequency" />
             </SelectTrigger>
@@ -61,7 +74,7 @@ const CampaignDetailsForm = ({
 
         <div>
           <Label>Target Audience</Label>
-          <Select onValueChange={onTargetAudienceChange}>
+          <Select onValueChange={onTargetAudienceChange} value={targetAudience}>
             <SelectTrigger>
               <SelectValue placeholder="Select target audience" />
             </SelectTrigger>
@@ -76,7 +89,7 @@ const CampaignDetailsForm = ({
 
         <div>
           <Label>Platforms</Label>
-          <Select onValueChange={onPlatformsChange}>
+          <Select onValueChange={onPlatformsChange} value={platforms}>
             <SelectTrigger>
               <SelectValue placeholder="Select platforms" />
             </SelectTrigger>
@@ -87,6 +100,52 @@ const CampaignDetailsForm = ({
               <SelectItem value="sms">SMS</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        <div>
+          <Label>Start Date</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={startDate}
+                onSelect={onStartDateChange}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div>
+          <Label>End Date</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={endDate}
+                onSelect={onEndDateChange}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div>
