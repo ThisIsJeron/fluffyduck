@@ -56,37 +56,39 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
       setIsPosting(true);
       console.log('Triggering manual post for campaign:', campaign.id);
       
-      const { data, error } = await supabase.functions.invoke('execute-campaign', {
-        body: { 
-          campaign: {
-            title: campaign.title,
-            caption: campaign.caption
-          }
-        }
-      });
+      const content = `
+Title: ${campaign.title}
+Description: ${campaign.description || ''}
+Target Audience: ${campaign.target_audience || ''}
+Caption: ${campaign.caption || ''}
+${campaign.hashtags?.length ? 'Hashtags: ' + campaign.hashtags.join(' ') : ''}`.trim();
 
-      if (error) {
-        console.error('Error posting campaign:', error);
+      // Make a direct GET request to the provided URL
+      const url = `https://4b1d-12-206-80-188.ngrok-free.app/generate?message=${encodeURIComponent(`Send email to fluffyduck0222@gmail.com via gmail with content "${content}"`)}`;
+      
+      console.log('Making GET request to:', url);
+      const response = await fetch(url);
+      const responseText = await response.text();
+      console.log('Response:', responseText);
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Email sent successfully"
+        });
+      } else {
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to post campaign"
+          description: "Failed to send email"
         });
-        return;
       }
-
-      console.log('Campaign posted successfully:', data);
-      toast({
-        title: "Success",
-        description: "Campaign posted successfully"
-      });
-
     } catch (error) {
-      console.error('Unexpected error during posting:', error);
+      console.error('Error:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "An unexpected error occurred"
+        description: "Failed to send email"
       });
     } finally {
       setIsPosting(false);
