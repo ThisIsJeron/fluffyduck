@@ -18,10 +18,18 @@ export function CampaignActions({ campaign, onEdit, onPost, isPosting }: Campaig
     try {
       console.log('Posting campaign:', campaign);
       
-      // Construct the message using campaign data
-      const emailContent = `Title: ${campaign.title}\n\n${campaign.caption}`;
-      const baseMessage = "Send email to fluffyduck0222@gmail.com via gmail";
-      const fullMessage = `${baseMessage} with content "${emailContent}"`;
+      // Format the campaign content for the email
+      const previewContent = `
+Title: ${campaign.title}
+Description: ${campaign.description || ''}
+Target Audience: ${campaign.target_audience || ''}
+Caption: ${campaign.caption || ''}
+${campaign.hashtags?.length ? 'Hashtags: ' + campaign.hashtags.join(' ') : ''}
+      `.trim();
+      
+      // Construct the full message
+      const emailCommand = "Send email to fluffyduck0222@gmail.com via gmail";
+      const fullMessage = `${emailCommand} with content "${previewContent}"`;
       
       // Encode the message for URL
       const encodedMessage = encodeURIComponent(fullMessage);
