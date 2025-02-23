@@ -32,11 +32,6 @@ const navItems = [
     href: "/reservations"
   },
   {
-    label: "Contacts",
-    icon: Users,
-    href: "/contacts"
-  },
-  {
     label: "Media Library",
     icon: Image,
     href: "/media-library"
