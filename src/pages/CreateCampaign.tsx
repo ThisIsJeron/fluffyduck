@@ -92,8 +92,8 @@ const CreateCampaign = () => {
 
       console.log('Sending data to backend:', campaignData);
 
-      // Call the API
-      const response = await fetch('https://7a22-12-206-80-188.ngrok-free.app', {
+      // Call the API with the ngrok URL
+      const response = await fetch('https://7a22-12-206-80-188.ngrok-free.app/api/generate-campaign', {
         method: 'POST',
         body: formData
       });
