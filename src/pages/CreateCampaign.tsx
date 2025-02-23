@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -64,7 +65,6 @@ const CreateCampaign = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [generatedCampaigns, setGeneratedCampaigns] = useState<CampaignCard[]>([]);
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
@@ -332,22 +332,6 @@ const CreateCampaign = () => {
           </Form>
         </div>
       </div>
-
-      {generatedImages.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-xl font-bold mb-4">Generated Images</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {generatedImages.map((imageUrl, index) => (
-              <img
-                key={index}
-                src={imageUrl}
-                alt={`Generated image ${index + 1}`}
-                className="w-full h-auto rounded-lg shadow-md"
-              />
-            ))}
-          </div>
-        </div>
-      )}
 
       {generatedCampaigns.length > 0 && (
         <div className="mt-8">
