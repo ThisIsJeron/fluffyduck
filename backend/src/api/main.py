@@ -13,7 +13,7 @@ from io import BytesIO
 load_dotenv()
 
 # Initialize FastAPI app
-app = FastAPI(title="FluffyDuck API")
+app = FastAPI(title="FluffyDuck API - Restaurant Photo Enhancer")
 
 # Add CORS middleware
 app.add_middleware(
@@ -21,7 +21,7 @@ app.add_middleware(
     allow_origins=[
         "https://fluffyduck.vercel.app",
         "http://localhost:5173",
-        "*"  # Allow all origins for testing
+        "*"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -35,7 +35,6 @@ if not FAL_KEY:
 
 fal_client.api_key = FAL_KEY
 
-# Pydantic models
 class CampaignRequest(BaseModel):
     name: str
     description: str
@@ -43,90 +42,120 @@ class CampaignRequest(BaseModel):
     cadence: str
     platforms: List[str]
 
-class ImageGenerationResponse(BaseModel):
-    generated_images: List[str]
+class ImageEnhancementResponse(BaseModel):
+    enhanced_images: List[str]
     prompt: str
     style_used: str
 
 async def process_image_for_fal(image: UploadFile) -> str:
-    """Convert uploaded image to base64 for FAL API"""
+    """Process uploaded image for FAL API"""
     try:
         contents = await image.read()
         base64_image = base64.b64encode(contents).decode('utf-8')
         return f"data:image/{image.content_type.split('/')[-1]};base64,{base64_image}"
     except Exception as e:
         print(f"Error processing image: {str(e)}")
-        raise
+        raise HTTPException(
+            status_code=400,
+            detail=f"Error processing image: {str(e)}"
+        )
 
-async def enhance_marketing_image(
+async def enhance_restaurant_photo(
     name: str,
     description: str,
     target_audience: str,
     platforms: List[str],
     reference_image_data: str
 ) -> Dict:
-    """Enhance existing marketing images to make them more professional and platform-appropriate"""
+    """Enhance existing restaurant food photography while maintaining composition"""
     try:
-        # Get style for primary platform
+        # Platform-specific enhancement styles
         primary_platform = platforms[0]
         style_modifiers = {
-            'Instagram': (
-                "enhance this professional photo, maintain original composition, "
-                "make it instagram-worthy, improve lighting and colors, "
-                "high-end photography style, no AI artifacts, premium quality"
-            ),
-            'LinkedIn': (
-                "enhance this professional photo, maintain original composition, "
-                "corporate style, premium business look, high-end photography style, "
-                "no AI artifacts, professional lighting"
-            ),
-            'Facebook': (
-                "enhance this professional photo, maintain original composition, "
-                "social media optimized, premium look, high-end photography style, "
-                "no AI artifacts, engaging visuals"
-            ),
-            'Twitter': (
-                "enhance this professional photo, maintain original composition, "
-                "attention-grabbing, premium quality, high-end photography style, "
-                "no AI artifacts, crisp details"
-            )
+            'Instagram': {
+                'style': (
+                    "enhance this exact food photo, improve lighting and colors, "
+                    "make it instagram-worthy while keeping exact composition, "
+                    "maintain identical plating, enhance existing details, "
+                    "professional food photography color grading"
+                ),
+                'aspect_ratio': "square_hd"
+            },
+            'LinkedIn': {
+                'style': (
+                    "enhance this exact food photo, improve lighting and colors, "
+                    "upscale restaurant style while keeping exact composition, "
+                    "maintain identical plating, enhance existing details, "
+                    "professional business presentation"
+                ),
+                'aspect_ratio': "landscape_hd"
+            },
+            'Facebook': {
+                'style': (
+                    "enhance this exact food photo, improve lighting and colors, "
+                    "social-media optimized while keeping exact composition, "
+                    "maintain identical plating, enhance existing details, "
+                    "engaging food presentation"
+                ),
+                'aspect_ratio': "landscape_hd"
+            },
+            'Twitter': {
+                'style': (
+                    "enhance this exact food photo, improve lighting and colors, "
+                    "attention-grabbing while keeping exact composition, "
+                    "maintain identical plating, enhance existing details, "
+                    "impactful food presentation"
+                ),
+                'aspect_ratio': "landscape_hd"
+            }
         }
-        style = style_modifiers.get(primary_platform, "professional photography enhancement")
 
-        # Construct prompt focused on enhancing the existing image
+        platform_style = style_modifiers.get(primary_platform, {
+            'style': "enhance this exact food photo professionally",
+            'aspect_ratio': "square_hd"
+        })
+
+        # Craft detailed enhancement prompt
         prompt = (
-            f"Enhance this photo while preserving its original content and composition. "
-            f"Make it look like a professionally taken photograph. "
+            f"Enhance this exact food photo for {name} restaurant marketing. "
+            f"Keep the exact same composition and plating. "
+            f"Campaign focus: {description}. "
             f"Target audience: {target_audience}. "
-            f"Style: {style}. "
-            "Improve lighting, color grading, and overall quality. "
-            "Keep it natural and authentic looking, avoid artificial AI-generated appearance. "
-            "Make it look like it was taken by a professional photographer with high-end equipment. "
-            "Ensure natural skin tones and realistic textures. "
-            "Maintain authentic details and professional composition."
+            "DO NOT change food arrangement or composition. "
+            "ONLY enhance: "
+            "- Professional lighting to highlight textures "
+            "- Color balance and vibrancy "
+            "- Sharpness and clarity "
+            "- Professional food photography appeal "
+            "Make lighting and colors match high-end restaurant photography. "
+            "Maintain exact food placement and styling. "
+            "Enhance existing shadows and highlights. "
+            "Keep natural, authentic food appearance."
         )
 
-        # Configure enhancement parameters
         # Configure enhancement parameters
         arguments = {
             "prompt": prompt,
             "negative_prompt": (
-                "artificial, fake, generated, distorted, low quality, blurry, oversaturated, "
-                "unrealistic, cartoon, illustration, painting, drawing, text, watermark, "
-                "AI artifacts, unnatural colors, poor lighting, bad composition, "
-                "artificial textures, synthetic look"
+                "different composition, different plating, different food, "
+                "new arrangement, modified layout, alternate angle, "
+                "changed perspective, different setup, artificial looking, "
+                "oversaturated, unrealistic colors, cartoon effect, "
+                "illustration style, painting style, artificial enhancement"
             ),
-            "image_size": "square_hd",
-            "num_inference_steps": 50,     # Changed from 75 to 50 (maximum allowed)
-            "guidance_scale": 8.5,
+            "image_size": platform_style['aspect_ratio'],
+            "num_inference_steps": 50,
+            "guidance_scale": 7.0,          # Balanced to maintain original image
             "num_images": 3,
             "scheduler": "DPM++ 2M Karras",
-            "image_guidance_scale": 1.8,
+            "image_guidance_scale": 2.5,    # High for stronger reference adherence
             "reference_image": reference_image_data,
-            "reference_weight": 0.9
+            "reference_weight": 0.98,       # Very high to ensure minimal deviation
+            "control_guidance_start": 0.0,  # Start from beginning
+            "control_guidance_end": 1.0     # Continue to end
         }
 
-        print("Calling FAL API for image enhancement...")
+        print(f"Enhancing existing food photo for {primary_platform}...")
         print(f"Using prompt: {prompt}")
         
         result = fal_client.subscribe(
@@ -135,37 +164,47 @@ async def enhance_marketing_image(
             with_logs=True
         )
         
-        if isinstance(result, dict) and 'images' in result:
-            return {
-                'generated_images': [img['url'] for img in result['images']],
-                'prompt': prompt,
-                'style_used': style
-            }
-        else:
+        if not isinstance(result, dict) or 'images' not in result:
             raise ValueError(f"Invalid response format from Fal.ai: {result}")
 
-    except Exception as e:
-        print(f"Error enhancing image: {str(e)}")
-        raise
+        return {
+            'enhanced_images': [img['url'] for img in result['images']],
+            'prompt': prompt,
+            'style_used': platform_style['style']
+        }
 
-@app.post("/api/generate-campaign", response_model=ImageGenerationResponse)
-async def generate_campaign(
+    except Exception as e:
+        print(f"Error enhancing food image: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error enhancing image: {str(e)}"
+        )
+
+@app.post("/api/enhance-campaign", response_model=ImageEnhancementResponse)
+async def enhance_campaign(
     campaign: str = Form(...),
     reference_image: UploadFile = File(...)
 ):
-    """Enhance marketing images while maintaining their original essence"""
+    """Enhance existing restaurant food photos for marketing campaign"""
     try:
-        # Parse campaign data
+        # Validate and parse campaign data
         print(f"Received campaign data: {campaign}")
         campaign_data = json.loads(campaign)
         campaign_request = CampaignRequest(**campaign_data)
 
+        # Validate image
+        if not reference_image.content_type.startswith('image/'):
+            raise HTTPException(
+                status_code=400,
+                detail="Uploaded file must be an image"
+            )
+
         # Process the uploaded image
-        print(f"Processing reference image: {reference_image.filename}")
+        print(f"Processing food image: {reference_image.filename}")
         reference_image_data = await process_image_for_fal(reference_image)
 
-        # Enhance the image
-        result = await enhance_marketing_image(
+        # Enhance the existing food photography
+        result = await enhance_restaurant_photo(
             name=campaign_request.name,
             description=campaign_request.description,
             target_audience=campaign_request.target_audience,
@@ -173,29 +212,29 @@ async def generate_campaign(
             reference_image_data=reference_image_data
         )
         
-        print(f"Enhancement result: {result}")
+        print(f"Enhancement completed successfully")
         return result
         
     except json.JSONDecodeError as e:
-        print(f"JSON decode error: {str(e)}")
         raise HTTPException(
             status_code=400,
             detail="Invalid JSON format in campaign data"
         )
     except Exception as e:
-        print(f"Error in generate_campaign: {str(e)}")
+        print(f"Error in enhance_campaign: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error generating campaign: {str(e)}"
+            detail=f"Error processing campaign: {str(e)}"
         )
 
 @app.get("/")
 async def root():
     """Root endpoint"""
     return {
-        "message": "FluffyDuck API is running",
-        "version": "1.0.0",
-        "status": "healthy"
+        "message": "FluffyDuck Restaurant Photo Enhancement API",
+        "version": "2.0.0",
+        "status": "healthy",
+        "service": "food-photography-enhancer"
     }
 
 @app.get("/api/health")
@@ -203,8 +242,8 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "service": "marketing-image-enhancer",
-        "version": "1.0.0"
+        "service": "food-photography-enhancer",
+        "version": "2.0.0"
     }
 
 if __name__ == "__main__":
