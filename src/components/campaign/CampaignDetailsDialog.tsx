@@ -29,7 +29,7 @@ const mockTimeData = {
     { time: "Mon", views: 1200, likes: 450, comments: 120 },
     { time: "Tue", views: 2400, likes: 890, comments: 240 },
     { time: "Wed", views: 5800, likes: 2100, comments: 560 },
-    { time: "Thu", views: 8900, likes: 3200, comments: 890 }, // Fixed: Removed duplicate 'views' property
+    { time: "Thu", views: 8900, likes: 3200, comments: 890 },
     { time: "Fri", views: 12000, likes: 4500, comments: 1200 },
     { time: "Sat", views: 15000, likes: 5600, comments: 1500 },
     { time: "Sun", views: 18000, likes: 6700, comments: 1800 },
@@ -56,8 +56,13 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
       setIsPosting(true);
       console.log('Triggering manual post for campaign:', campaign.id);
       
-      const { data, error } = await supabase.functions.invoke('process-campaigns', {
-        body: { campaignId: campaign.id }
+      const { data, error } = await supabase.functions.invoke('execute-campaign', {
+        body: { 
+          campaign: {
+            title: campaign.title,
+            caption: campaign.caption
+          }
+        }
       });
 
       if (error) {
