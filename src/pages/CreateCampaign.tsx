@@ -4,11 +4,11 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ImageUpload";
-import { FormLabel } from "@/components/ui/form";
 import { CampaignForm } from "@/components/campaign/CampaignForm";
 import { CampaignCards } from "@/components/campaign/CampaignCards";
 import type { z } from "zod";
 import { formSchema } from "@/components/campaign/CampaignForm";
+import { Label } from "@/components/ui/label";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
 
@@ -106,7 +106,7 @@ const CreateCampaign = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-4">
           <div className="space-y-4">
-            <FormLabel>Upload Image</FormLabel>
+            <Label htmlFor="image-upload">Upload Image</Label>
             <ImageUpload
               value={uploadedFiles.map(file => URL.createObjectURL(file))}
               onChange={(files) => setUploadedFiles(files)}
