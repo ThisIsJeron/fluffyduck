@@ -14,7 +14,25 @@ export function CampaignActions({ onEdit, onPost, isPosting }: CampaignActionsPr
 
   const handlePost = async () => {
     try {
-      await onPost();
+      const response = await fetch('http://localhost:3001/api/execute-campaign', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          campaign: {
+            title: "Your campaign title",  // You'll need to pass this from props
+            caption: "Your campaign caption" // You'll need to pass this from props
+          }
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error);
+      }
+
       toast({
         title: "Success",
         description: "Campaign posted successfully via Pica"
