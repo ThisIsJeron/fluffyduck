@@ -1,132 +1,82 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
-import { Pica } from 'npm:@picahq/ai'
-import { generateText } from 'npm:ai'
-import { openai } from 'npm:@ai-sdk/openai'
+import { Resend } from 'npm:resend@2.0.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+
 interface Campaign {
   id: string;
   title: string;
   description: string;
   platforms: string[];
-  start_date: string;
-  end_date: string;
   media_url: string;
   caption: string;
+  hashtags: string[];
 }
 
-async function executeEmailCampaign(campaign: Campaign) {
-  const pica = new Pica(Deno.env.get('PICA_SECRET_KEY') ?? '');
-  const system = await pica.generateSystemPrompt();
-
-  // Format the email content to match the preview layout
-  const emailContent = `
-${campaign.title}
-
-${campaign.caption}
-
-${campaign.media_url ? `[Image included: ${campaign.media_url}]` : ''}
-
-Click here to learn more`;
-
-  // Construct email message using campaign details and matching preview layout
-  const message = `send email to fluffyduck0222@gmail.com using gmail with:
-    subject: ${campaign.title}
-    content: ${emailContent}
-    ${campaign.media_url ? `attachment: ${campaign.media_url}` : ''}
-    format: html
-    style: 
-    - Make the title large and bold
-    - Center align any images
-    - Add padding around content
-    - Use a clean, professional layout
-    - Add a blue button for "Click here to learn more"
-  `;
-
-  console.log('Generating email with Pica:', message);
-
-  const { text } = await generateText({
-    model: openai('gpt-4o'),
-    system,
-    prompt: message,
-    tools: { ...pica.oneTool },
-    maxSteps: 10,
-  });
-
-  return text;
-}
-
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
+    const { campaignId } = await req.json();
+    console.log('Processing campaign:', campaignId);
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     )
 
-    console.log('Starting campaign processing...')
-
-    // Get current campaigns that need to be processed
-    const { data: campaigns, error } = await supabaseClient
-      .from('selected_campaigns')
+    // Get the campaign details
+    const { data: campaign, error: campaignError } = await supabaseClient
+      .from('campaigns')
       .select('*')
-      .lte('start_date', new Date().toISOString())
-      .gte('end_date', new Date().toISOString())
+      .eq('id', campaignId)
+      .single();
 
-    if (error) {
-      console.error('Error fetching campaigns:', error)
-      throw error
+    if (campaignError) {
+      throw campaignError;
     }
 
-    console.log(`Found ${campaigns?.length ?? 0} campaigns to process`)
+    if (!campaign) {
+      throw new Error('Campaign not found');
+    }
 
-    const processedEmails = [];
-    const otherPlatforms = [];
+    console.log('Campaign details:', campaign);
 
-    // Process each campaign
-    for (const campaign of campaigns ?? []) {
-      console.log(`Processing campaign: ${campaign.title}`)
-      
-      if (campaign.platforms) {
-        for (const platform of campaign.platforms) {
-          if (platform === 'email') {
-            try {
-              console.log(`Processing email campaign: ${campaign.title}`);
-              const result = await executeEmailCampaign(campaign);
-              processedEmails.push({
-                campaign: campaign.title,
-                result
-              });
-            } catch (err) {
-              console.error(`Error processing email campaign ${campaign.title}:`, err);
-              processedEmails.push({
-                campaign: campaign.title,
-                error: err.message
-              });
-            }
-          } else {
-            // Log other platforms for future implementation
-            otherPlatforms.push(`${platform} for campaign: ${campaign.title}`);
-          }
-        }
+    // Send email notification
+    if (campaign.platforms.includes('email')) {
+      try {
+        const emailResponse = await resend.emails.send({
+          from: 'Social Campaign Manager <onboarding@resend.dev>',
+          to: ['fluffyduck0222@gmail.com'], // Replace with actual recipient
+          subject: campaign.title,
+          html: `
+            <h1>${campaign.title}</h1>
+            <p>${campaign.description}</p>
+            ${campaign.media_url ? `<img src="${campaign.media_url}" alt="Campaign Media" style="max-width: 600px;" />` : ''}
+            <p>${campaign.caption}</p>
+            ${campaign.hashtags ? `<p>${campaign.hashtags.join(' ')}</p>` : ''}
+          `,
+        });
+
+        console.log('Email sent successfully:', emailResponse);
+      } catch (emailError) {
+        console.error('Error sending email:', emailError);
+        throw emailError;
       }
     }
 
     return new Response(
       JSON.stringify({ 
-        message: 'Campaign processing completed',
-        processedEmails,
-        otherPlatforms,
-        processed: campaigns?.length ?? 0
+        message: 'Campaign processed successfully',
+        campaign: campaign.title
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -135,7 +85,7 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error in process-campaigns function:', error)
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }), 
       { 
