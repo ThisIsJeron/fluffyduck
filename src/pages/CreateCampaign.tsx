@@ -39,16 +39,9 @@ const CreateCampaign = () => {
           return null;
         }
 
-        // Create a blob from the file
-        const blob = file.slice(0, file.size, file.type);
-        const newFile = new File([blob], file.name, {
-          type: file.type,
-          lastModified: new Date().getTime()
-        });
-        
         return {
-          ...newFile,
-          preview: URL.createObjectURL(blob)
+          ...file,
+          preview: URL.createObjectURL(file)
         };
       }).filter(Boolean) as UploadedFile[];
 
@@ -103,14 +96,15 @@ const CreateCampaign = () => {
       // Get the first uploaded file
       const fileToUpload = uploadedFiles[0];
 
-      // Create a new blob with the correct type
-      const blob = await fetch(fileToUpload.preview).then(r => r.blob());
-      
-      // Create a new file from the blob
-      const imageFile = new File([blob], fileToUpload.name, {
-        type: fileToUpload.type,
-        lastModified: new Date().getTime()
-      });
+      // Create a new File object with the correct type and name
+      const imageFile = new File(
+        [fileToUpload],
+        fileToUpload.name,
+        {
+          type: fileToUpload.type,
+          lastModified: new Date().getTime()
+        }
+      );
 
       // Append the file with the correct field name
       formData.append('reference_image', imageFile);
@@ -348,3 +342,4 @@ const CreateCampaign = () => {
 };
 
 export default CreateCampaign;
+
