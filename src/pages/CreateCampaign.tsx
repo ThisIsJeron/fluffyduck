@@ -64,9 +64,14 @@ const CreateCampaign = () => {
       if (!response.ok) {
         throw new Error('Backend server is not responding properly');
       }
+      const data = await response.text();
+      console.log('Backend health check response:', data);
       return true;
     } catch (error) {
       console.error('Server availability check failed:', error);
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.error('This might be a CORS or server connection issue');
+      }
       return false;
     }
   };
@@ -76,7 +81,7 @@ const CreateCampaign = () => {
     try {
       const isServerAvailable = await checkServerAvailability();
       if (!isServerAvailable) {
-        throw new Error('Backend server is not available. Please try again later or contact support if the issue persists.');
+        throw new Error('Backend server is not available. Please ensure the backend server is running and accessible at /api/health');
       }
 
       if (!campaignName || !description || !targetAudience || !platforms) {
@@ -158,6 +163,8 @@ const CreateCampaign = () => {
           console.error('Error reading response:', e);
           if (!window.navigator.onLine) {
             errorMessage = 'You are currently offline. Please check your internet connection.';
+          } else if (response.status === 404) {
+            errorMessage = 'The /api/generate-campaign endpoint does not exist. Please ensure the backend server is properly configured.';
           } else if (response.status === 503 || response.status === 502 || response.status === 504) {
             errorMessage = 'The server is temporarily unavailable. Please try again in a few minutes.';
           }
