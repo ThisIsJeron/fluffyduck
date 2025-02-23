@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -70,19 +71,26 @@ const CreateCampaign = () => {
       // Create FormData object
       const formData = new FormData();
       
-      // Add the campaign data
+      // Add the campaign data as JSON string with the key 'campaign'
       const campaignData = {
         name: campaignName,
         description: description,
         target_audience: targetAudience,
         cadence: cadence,
-        platforms: platforms ? [platforms] : []
+        platforms: [platforms]  // Convert to array since backend expects array
       };
       
       formData.append('campaign', JSON.stringify(campaignData));
       
-      // Add the reference image
-      formData.append('reference_image', uploadedFiles[0]);
+      // Add the first uploaded file as reference_image
+      if (uploadedFiles[0]) {
+        const file = uploadedFiles[0];
+        // Create a new File instance with the correct type
+        const imageFile = new File([file], file.name, { type: file.type });
+        formData.append('reference_image', imageFile);
+      }
+
+      console.log('Sending data to backend:', campaignData);
 
       // Call the API
       const response = await fetch('http://localhost:8000/api/generate-campaign', {
@@ -107,7 +115,12 @@ const CreateCampaign = () => {
           platforms,
           'Marketing'
         ].filter(Boolean),
-        selected: false
+        selected: false,
+        title: campaignName,
+        description: description,
+        cadence: cadence,
+        target_audience: targetAudience,
+        platforms: [platforms]
       }));
 
       setCampaigns(generatedCampaigns);
@@ -153,7 +166,7 @@ const CreateCampaign = () => {
               description: description,
               cadence: cadence,
               target_audience: targetAudience,
-              platforms: platforms ? [platforms] : [],
+              platforms: [platforms],
             })
             .select()
             .single();
