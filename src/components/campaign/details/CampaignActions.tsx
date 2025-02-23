@@ -2,7 +2,6 @@
 import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { Campaign } from "@/types/campaign";
 
 interface CampaignActionsProps {
@@ -19,37 +18,27 @@ export function CampaignActions({ campaign, onEdit, onPost, isPosting }: Campaig
     try {
       console.log('Posting campaign:', campaign);
       
-      const { data, error } = await supabase.functions.invoke('execute-campaign', {
-        body: { 
-          campaign: {
-            title: campaign.title,
-            caption: campaign.caption
-          }
-        }
-      });
-
-      if (error) {
-        console.error('Supabase function error:', error);
-        const errorMessage = error.message || 'Failed to post campaign';
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: errorMessage
-        });
-        return;
+      // Construct the message using campaign data
+      const emailContent = `Title: ${campaign.title}\n\n${campaign.caption}`;
+      const baseMessage = "Send email to fluffyduck0222@gmail.com via gmail";
+      const fullMessage = `${baseMessage} with content "${emailContent}"`;
+      
+      // Encode the message for URL
+      const encodedMessage = encodeURIComponent(fullMessage);
+      const url = `https://4b1d-12-206-80-188.ngrok-free.app/generate?message=${encodedMessage}`;
+      
+      console.log('Sending GET request to:', url);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Request failed: ${response.status} - ${errorText}`);
       }
 
-      if (!data?.success) {
-        console.error('Campaign posting failed:', data?.error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: data?.error || "Failed to post campaign"
-        });
-        return;
-      }
+      const data = await response.json();
+      console.log('Response data:', data);
 
-      console.log('Campaign posted successfully:', data);
       toast({
         title: "Success",
         description: "Campaign posted successfully"
