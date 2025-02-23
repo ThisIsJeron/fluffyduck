@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ImageUpload";
-import { Form, FormLabel } from "@/components/ui/form";
+import { FormLabel } from "@/components/ui/form";
 import { CampaignForm } from "@/components/campaign/CampaignForm";
 import { CampaignCards } from "@/components/campaign/CampaignCards";
 import type { z } from "zod";
@@ -105,15 +105,13 @@ const CreateCampaign = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-4">
-          <Form>
-            <div className="space-y-4">
-              <FormLabel>Upload Image</FormLabel>
-              <ImageUpload
-                value={uploadedFiles.map(file => URL.createObjectURL(file))}
-                onChange={(files) => setUploadedFiles(files)}
-              />
-            </div>
-          </Form>
+          <div className="space-y-4">
+            <FormLabel>Upload Image</FormLabel>
+            <ImageUpload
+              value={uploadedFiles.map(file => URL.createObjectURL(file))}
+              onChange={(files) => setUploadedFiles(files)}
+            />
+          </div>
         </div>
 
         <div>
