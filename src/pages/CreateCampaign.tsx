@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -11,7 +10,6 @@ import GeneratedCampaigns from "@/components/campaign/GeneratedCampaigns";
 import { Campaign, UploadedFile } from "@/types/campaign";
 
 const CreateCampaign = () => {
-  // Add start and end date state
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -26,7 +24,6 @@ const CreateCampaign = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Handle file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const files = Array.from(e.target.files).map(file => ({
@@ -37,7 +34,6 @@ const CreateCampaign = () => {
     }
   };
 
-  // Remove uploaded file
   const removeFile = (index: number) => {
     setUploadedFiles(prev => {
       const newFiles = [...prev];
@@ -47,11 +43,9 @@ const CreateCampaign = () => {
     });
   };
 
-  // Handle campaign generation
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      // Validation
       if (!campaignName || !description || !targetAudience || !platforms) {
         toast({
           title: "Error",
@@ -70,36 +64,26 @@ const CreateCampaign = () => {
         return;
       }
 
-      // Create FormData object
       const formData = new FormData();
       
-      // Add the campaign data as JSON string with the key 'campaign'
       const campaignData = {
         name: campaignName,
         description: description,
         target_audience: targetAudience,
         cadence: cadence,
-        platforms: [platforms]  // Convert to array since backend expects array
+        platforms: [platforms]
       };
       
       formData.append('campaign', JSON.stringify(campaignData));
       
-      // Add the first uploaded file as reference_image
-      if (uploadedFiles[0]) {
-        const file = uploadedFiles[0];
-        // Create a new File instance with the correct type
-        const imageFile = new File([file], file.name, { type: file.type });
-        formData.append('reference_image', imageFile);
-      }
+      const file = uploadedFiles[0];
+      const imageFile = new File([file], file.name, { type: file.type });
+      formData.append('reference_image', imageFile);
 
       console.log('Sending data to backend:', campaignData);
 
-      // Call the API with the ngrok URL
       const response = await fetch('https://7a22-12-206-80-188.ngrok-free.app/api/generate-campaign', {
         method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-        },
         body: formData
       });
 
@@ -115,7 +99,6 @@ const CreateCampaign = () => {
         throw new Error('Invalid response format from API');
       }
       
-      // Transform the API response into Campaign objects
       const generatedCampaigns: Campaign[] = result.generated_images.map((imageUrl: string) => ({
         id: crypto.randomUUID(),
         media_url: imageUrl,
@@ -155,10 +138,8 @@ const CreateCampaign = () => {
     }
   };
 
-  // Handle campaign selection
   const handleSelect = async (selectedCampaign: Campaign) => {
     try {
-      // Fetch the image from the URL
       const response = await fetch(selectedCampaign.media_url);
       const blob = await response.blob();
       const reader = new FileReader();
@@ -167,9 +148,8 @@ const CreateCampaign = () => {
         try {
           const base64data = reader.result as string;
           
-          // Save to Supabase selected_campaigns table
           const { data, error } = await supabase
-            .from('selected_campaigns')  // Changed from 'campaigns' to 'selected_campaigns'
+            .from('selected_campaigns')
             .insert({
               media_url: base64data,
               caption: selectedCampaign.caption,
@@ -181,7 +161,7 @@ const CreateCampaign = () => {
               platforms: [platforms],
               start_date: startDate?.toISOString(),
               end_date: endDate?.toISOString(),
-              metrics: { likes: 0, views: 0, comments: 0 } // Add default metrics
+              metrics: { likes: 0, views: 0, comments: 0 }
             })
             .select()
             .single();
@@ -194,7 +174,6 @@ const CreateCampaign = () => {
 
           console.log("Created selected campaign:", data);
 
-          // Navigate to completion page with the correct ID
           navigate(`/campaign-completion/${data.id}`);
           
           toast({
