@@ -47,20 +47,6 @@ class ImageGenerationResponse(BaseModel):
     prompt: str
     style_used: str
 
-async def process_image_for_fal(image: UploadFile) -> str:
-    """Process uploaded image for FAL API"""
-    try:
-        contents = await image.read()
-        if not contents:
-            raise ValueError("Empty image file")
-            
-        base64_image = base64.b64encode(contents).decode('utf-8')
-        await image.seek(0)  # Reset file pointer
-        return f"data:image/{image.content_type.split('/')[-1]};base64,{base64_image}"
-    except Exception as e:
-        print(f"Error processing image: {str(e)}")
-        raise ValueError(f"Error processing image: {str(e)}")
-
 async def enhance_restaurant_photo(
     name: str,
     description: str,
@@ -185,57 +171,58 @@ async def generate_campaign(
 ):
     """Enhance existing restaurant food photos for marketing campaign"""
     try:
-        # Debug information
         print("\n=== Starting new campaign generation ===")
+        
+        # Debug information
         print(f"Campaign data received: {campaign}")
-        print(f"Image file received: {reference_image.filename}")
-        print(f"Image content type: {reference_image.content_type}")
+        print(f"Image details:")
+        print(f"- Filename: {reference_image.filename if reference_image else 'No file'}")
+        print(f"- Content type: {reference_image.content_type if reference_image else 'No content type'}")
 
-        # Parse campaign data
+        # Validate campaign data
         try:
             campaign_data = json.loads(campaign)
             campaign_request = CampaignRequest(**campaign_data)
         except json.JSONDecodeError as e:
-            print(f"JSON decode error: {str(e)}")
             raise HTTPException(
                 status_code=400,
-                detail="Invalid JSON format in campaign data"
+                detail="Invalid campaign data format"
             )
 
-        # Validate image
-        if not reference_image.filename:
+        # Validate image file
+        if not reference_image or not reference_image.filename:
             raise HTTPException(
                 status_code=400,
-                detail="No image file provided"
+                detail="No image file was uploaded. Please select an image."
             )
 
-        if not reference_image.content_type:
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid image format: content type missing"
-            )
-
-        if not reference_image.content_type.startswith('image/'):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid file type: {reference_image.content_type}. Must be an image."
-            )
-
-        # Process image
+        # Read and validate image content
         try:
-            print("Processing image...")
-            reference_image_data = await process_image_for_fal(reference_image)
-            print("Image processed successfully")
+            contents = await reference_image.read()
+            file_size = len(contents)
+            print(f"- File size: {file_size} bytes")
+            
+            if file_size == 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Empty image file"
+                )
+            
+            # Reset file position after reading
+            await reference_image.seek(0)
+            
+            # Convert image to base64 for FAL API
+            reference_image_data = f"data:image/jpeg;base64,{base64.b64encode(contents).decode('utf-8')}"
+            
         except Exception as e:
-            print(f"Image processing error: {str(e)}")
+            print(f"Error reading image: {str(e)}")
             raise HTTPException(
                 status_code=400,
-                detail=f"Error processing image: {str(e)}"
+                detail="Error reading image file. Please try uploading again."
             )
 
-        # Enhance photo
+        # Enhance the photo
         try:
-            print("Starting photo enhancement...")
             result = await enhance_restaurant_photo(
                 name=campaign_request.name,
                 description=campaign_request.description,
@@ -243,8 +230,10 @@ async def generate_campaign(
                 platforms=campaign_request.platforms,
                 reference_image_data=reference_image_data
             )
+            
             print("Enhancement completed successfully")
             return result
+            
         except Exception as e:
             print(f"Enhancement error: {str(e)}")
             raise HTTPException(
@@ -253,12 +242,13 @@ async def generate_campaign(
             )
 
     except HTTPException as he:
-        raise he
+        print(f"HTTP Exception: {he.detail}")
+        raise
     except Exception as e:
         print(f"Unexpected error: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Unexpected error: {str(e)}"
+            detail=str(e)
         )
 
 @app.get("/")
