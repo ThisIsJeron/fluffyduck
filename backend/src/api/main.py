@@ -3,19 +3,39 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List, Dict
 import json
 from pydantic import BaseModel
+import fal_client
+import os
+from dotenv import load_dotenv
+import base64
+from io import BytesIO
 
-app = FastAPI()
+# Load environment variables
+load_dotenv()
+
+# Initialize FastAPI app
+app = FastAPI(title="FluffyDuck API")
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with your frontend URL
+    allow_origins=[
+        "https://fluffyduck.vercel.app",  # Replace with your frontend URL
+        "http://localhost:5173",          # For local development
+        "*"                               # Allow all origins for testing
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Pydantic models for request/response validation
+# Check for FAL API key
+FAL_KEY = os.getenv("FAL_KEY")
+if not FAL_KEY:
+    raise ValueError("FAL_KEY not found in environment variables")
+
+fal_client.api_key = FAL_KEY  # Set the API key for fal_client
+
+# Pydantic models
 class CampaignRequest(BaseModel):
     name: str
     description: str
@@ -28,64 +48,63 @@ class ImageGenerationResponse(BaseModel):
     prompt: str
     style_used: str
 
-# Initialize FAL client
-import fal_client
-import os
-from dotenv import load_dotenv
+async def process_image_for_fal(image: UploadFile) -> str:
+    """Convert uploaded image to base64 for FAL API"""
+    try:
+        contents = await image.read()
+        base64_image = base64.b64encode(contents).decode('utf-8')
+        return f"data:image/{image.content_type.split('/')[-1]};base64,{base64_image}"
+    except Exception as e:
+        print(f"Error processing image: {str(e)}")
+        raise
 
-load_dotenv()
-
-FAL_KEY = os.getenv("FAL_KEY")
-if not FAL_KEY:
-    raise ValueError("FAL_KEY not found in environment variables")
-
-async def generate_images_with_fal(
+async def generate_marketing_variations(
     name: str,
     description: str,
     target_audience: str,
     platforms: List[str],
-    reference_image_url: Optional[str] = None
+    reference_image_data: str
 ) -> Dict:
-    """Generate images using FAL.ai"""
+    """Generate marketing-enhanced variations of the provided image"""
     try:
-        # Customize style based on platform
-        style_modifiers = {
-            'Instagram': "instagram-style, vibrant, engaging, square format",
-            'LinkedIn': "professional, corporate, clean design",
-            'Facebook': "social media optimized, engaging, community focused",
-            'Twitter': "attention-grabbing, concise, shareable"
-        }
-        
         # Get style for primary platform
         primary_platform = platforms[0]
+        style_modifiers = {
+            'Instagram': "professional marketing style, instagram-worthy, engaging, high-quality",
+            'LinkedIn': "professional, corporate style, business-appropriate, polished",
+            'Facebook': "social media optimized, engaging, community-focused, appealing",
+            'Twitter': "attention-grabbing, impactful, shareable, crisp"
+        }
         style = style_modifiers.get(primary_platform, "professional marketing")
 
-        # Construct detailed prompt
+        # Construct prompt focused on enhancing the existing image
         prompt = (
-            f"Create a professional {primary_platform} marketing image for {target_audience}. "
+            f"Enhance this image for {primary_platform} marketing. "
+            f"Make it more professional and marketable while maintaining its original content and theme. "
+            f"Target audience: {target_audience}. "
             f"Campaign: {name}. {description}. "
-            f"Style: High-quality, professional photography, {style}. "
-            "Make it authentic and engaging, avoid artificial or stock photo look. "
-            "Ensure the image matches the brand message and resonates with the target audience."
+            f"Style: {style}. "
+            "Improve lighting, composition, and visual appeal. "
+            "Keep the main subject and theme but make it more polished and professional."
         )
+
+        print(f"Using prompt: {prompt}")
 
         # Configure generation parameters
         arguments = {
             "prompt": prompt,
-            "negative_prompt": "text overlay, watermark, low quality, logo, blurry, artificial looking, stock photo style",
-            "image_size": "square_hd",  # 1024x1024
-            "num_inference_steps": 50,  # Increased for better quality
+            "negative_prompt": "different subject, different composition, text overlay, watermark, low quality, blurry, distorted",
+            "image_size": "square_hd",
+            "num_inference_steps": 50,
             "guidance_scale": 7.5,
             "num_images": 3,
-            "scheduler": "DPM++ 2M Karras"  # Changed from "DPMSolverMultistep" to a valid option
+            "scheduler": "DPM++ 2M Karras",
+            "image_guidance_scale": 1.5,
+            "reference_image": reference_image_data,
+            "reference_weight": 0.8
         }
 
-        # If reference image provided, add it to parameters
-        if reference_image_url:
-            arguments["reference_image"] = reference_image_url
-            arguments["reference_weight"] = 0.3  # How much to consider reference image
-
-        print(f"\nGenerating images with prompt: {prompt}")
+        print("Calling FAL API...")
         
         result = fal_client.subscribe(
             "fal-ai/stable-diffusion-v15",
@@ -93,6 +112,8 @@ async def generate_images_with_fal(
             with_logs=True
         )
         
+        print(f"FAL API Response: {result}")
+
         if isinstance(result, dict) and 'images' in result:
             return {
                 'generated_images': [img['url'] for img in result['images']],
@@ -100,49 +121,42 @@ async def generate_images_with_fal(
                 'style_used': style
             }
         else:
-            raise ValueError("Invalid response format from Fal.ai")
+            raise ValueError(f"Invalid response format from Fal.ai: {result}")
 
     except Exception as e:
-        print(f"Error generating images: {str(e)}")
+        print(f"Error enhancing image: {str(e)}")
         raise
 
 @app.post("/api/generate-campaign", response_model=ImageGenerationResponse)
 async def generate_campaign(
     campaign: str = Form(...),
-    reference_image: Optional[UploadFile] = File(None)
+    reference_image: UploadFile = File(...)
 ):
-    """
-    Generate campaign images based on campaign details and optional reference image.
-    
-    - campaign: JSON string containing campaign details
-    - reference_image: Optional image file to use as reference
-    """
+    """Generate marketing-enhanced variations of the uploaded image"""
     try:
-        # Parse the campaign JSON string
+        # Parse campaign data
+        print(f"Received campaign data: {campaign}")
         campaign_data = json.loads(campaign)
         campaign_request = CampaignRequest(**campaign_data)
 
-        # Handle reference image if provided
-        reference_image_url = None
-        if reference_image:
-            # Read the image content
-            image_content = await reference_image.read()
-            # Here you would typically upload the image to a storage service
-            # and get back a URL. For now, we'll skip this step
-            print(f"Received reference image: {reference_image.filename}")
+        # Process the uploaded image
+        print(f"Processing reference image: {reference_image.filename}")
+        reference_image_data = await process_image_for_fal(reference_image)
 
-        # Generate images
-        result = await generate_images_with_fal(
+        # Generate enhanced variations
+        result = await generate_marketing_variations(
             name=campaign_request.name,
             description=campaign_request.description,
             target_audience=campaign_request.target_audience,
             platforms=campaign_request.platforms,
-            reference_image_url=reference_image_url
+            reference_image_data=reference_image_data
         )
         
+        print(f"Generation result: {result}")
         return result
         
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {str(e)}")
         raise HTTPException(
             status_code=400,
             detail="Invalid JSON format in campaign data"
@@ -154,11 +168,25 @@ async def generate_campaign(
             detail=f"Error generating campaign: {str(e)}"
         )
 
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "message": "FluffyDuck API is running",
+        "version": "1.0.0",
+        "status": "healthy"
+    }
+
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "service": "campaign-generator"}
+    return {
+        "status": "healthy",
+        "service": "marketing-image-enhancer",
+        "version": "1.0.0"
+    }
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 10000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
