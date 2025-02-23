@@ -31,21 +31,23 @@ export function CampaignActions({ campaign, onEdit, onPost, isPosting }: Campaig
       
       const response = await fetch(url);
       
-      if (!response.ok) {
+      // Since we don't know if the response will always be JSON,
+      // let's consider any 2xx status code as success
+      if (response.status >= 200 && response.status < 300) {
+        console.log('Request successful:', response.status);
+        
+        toast({
+          title: "Success",
+          description: "Campaign posted successfully"
+        });
+
+        // Call the onPost callback to update the UI
+        onPost();
+      } else {
         const errorText = await response.text();
-        throw new Error(`Request failed: ${response.status} - ${errorText}`);
+        console.error('Request failed:', response.status, errorText);
+        throw new Error(`Request failed with status ${response.status}`);
       }
-
-      const data = await response.json();
-      console.log('Response data:', data);
-
-      toast({
-        title: "Success",
-        description: "Campaign posted successfully"
-      });
-
-      // Call the onPost callback to update the UI
-      onPost();
     } catch (error) {
       console.error('Unexpected error during posting:', error);
       toast({
