@@ -25,6 +25,7 @@ const CreateCampaign = () => {
   const [generatedCampaigns, setGeneratedCampaigns] = useState<CampaignCard[]>([]);
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
+  const [formData, setFormData] = useState<any>(null);
 
   const generateCampaignCards = async () => {
     // Get public URLs for the sample campaign images
@@ -68,6 +69,13 @@ const CreateCampaign = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
+      // Store form data for use in campaign selection
+      setFormData({
+        ...values,
+        start_date: startDate,
+        end_date: endDate,
+      });
+
       // Generate campaign cards regardless of upload success
       const campaignCards = await generateCampaignCards();
       setGeneratedCampaigns(campaignCards);
@@ -149,7 +157,7 @@ const CreateCampaign = () => {
         </div>
       </div>
 
-      <CampaignCards campaigns={generatedCampaigns} />
+      <CampaignCards campaigns={generatedCampaigns} formData={formData} />
     </div>
   );
 };
