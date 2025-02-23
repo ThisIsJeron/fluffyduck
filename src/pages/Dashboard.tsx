@@ -10,9 +10,11 @@ import { useState } from "react";
 import { format, isBefore, isAfter, startOfToday, isWithinInterval } from "date-fns";
 import { useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Dashboard = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
   const location = useLocation();
   const isPastRoute = location.pathname === '/dashboard/past';
   
@@ -52,11 +54,17 @@ const Dashboard = () => {
   const filteredCampaigns = campaigns?.filter(campaign => {
     if (!campaign.end_date) return false;
     
-    if (isPastRoute) {
-      return isBefore(campaign.end_date, today);
-    } else {
-      return isAfter(campaign.end_date, today);
-    }
+    // First filter by past/current status
+    const isValidTimeframe = isPastRoute 
+      ? isBefore(campaign.end_date, today)
+      : isAfter(campaign.end_date, today);
+
+    // Then filter by platform if one is selected
+    const isValidPlatform = selectedPlatform === "all" 
+      ? true 
+      : campaign.platforms?.includes(selectedPlatform);
+
+    return isValidTimeframe && isValidPlatform;
   }) || [];
 
   const renderMetrics = (campaign: Campaign) => (
@@ -135,6 +143,23 @@ const Dashboard = () => {
               <h1 className="text-2xl font-bold">
                 {isPastRoute ? "Past Campaigns" : "Current & Upcoming Campaigns"}
               </h1>
+              <div className="w-48">
+                <Select
+                  value={selectedPlatform}
+                  onValueChange={setSelectedPlatform}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by platform" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Platforms</SelectItem>
+                    <SelectItem value="instagram">Instagram</SelectItem>
+                    <SelectItem value="facebook">Facebook</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="sms">SMS</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {isLoading ? (
