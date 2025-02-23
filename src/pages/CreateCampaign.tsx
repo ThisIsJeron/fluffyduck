@@ -37,13 +37,12 @@ const CreateCampaign = () => {
           return null;
         }
 
-        // Create a direct blob copy of the file
-        const blob = file.slice(0, file.size, file.type);
-        const newFile = new File([blob], file.name, { type: file.type });
+        // Store the original File object
+        const newFile = new File([file], file.name, { type: file.type });
         
         return {
           ...newFile,
-          preview: URL.createObjectURL(newFile)
+          preview: URL.createObjectURL(file)
         };
       }).filter(Boolean) as UploadedFile[];
 
@@ -95,14 +94,25 @@ const CreateCampaign = () => {
       
       formData.append('campaign', JSON.stringify(campaignData));
       
-      const file = uploadedFiles[0];
-      formData.append('reference_image', file);
+      // Get the first uploaded file
+      const fileToUpload = uploadedFiles[0];
+      
+      // Create a new File object from the uploaded file's data
+      // This ensures we're sending a proper File object with the correct type
+      const imageFile = new File(
+        [fileToUpload],
+        fileToUpload.name,
+        { type: fileToUpload.type }
+      );
+
+      // Append the file with the correct field name
+      formData.append('reference_image', imageFile);
 
       console.log('Sending data to backend:', {
         campaignData,
-        fileType: file.type,
-        fileName: file.name,
-        fileSize: file.size
+        fileType: imageFile.type,
+        fileName: imageFile.name,
+        fileSize: imageFile.size
       });
 
       const response = await fetch('https://7a22-12-206-80-188.ngrok-free.app/api/generate-campaign', {
