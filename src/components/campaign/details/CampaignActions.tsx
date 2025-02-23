@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CampaignActionsProps {
   onEdit: () => void;
@@ -14,23 +15,17 @@ export function CampaignActions({ onEdit, onPost, isPosting }: CampaignActionsPr
 
   const handlePost = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/execute-campaign', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('execute-campaign', {
+        body: {
           campaign: {
             title: "Your campaign title",  // You'll need to pass this from props
             caption: "Your campaign caption" // You'll need to pass this from props
           }
-        })
+        }
       });
 
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error);
+      if (error) {
+        throw error;
       }
 
       toast({

@@ -1,4 +1,4 @@
 
 project_id = "kpkwrnywumaosryedqwn"
-[functions.process-campaigns]
-verify_jwt = false
+[functions.execute-campaign]
+runtime = "node18"
