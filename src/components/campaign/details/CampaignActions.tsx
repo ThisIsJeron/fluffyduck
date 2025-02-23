@@ -42,7 +42,7 @@ export function CampaignActions({ campaign, onEdit, onPost, isPosting }: Campaig
         });
 
         // Call the onPost callback to update the UI
-        onPost();
+        if (onPost) onPost();
       } else {
         const errorText = await response.text();
         console.error('Request failed:', response.status, errorText);
