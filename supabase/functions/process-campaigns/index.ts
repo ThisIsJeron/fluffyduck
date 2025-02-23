@@ -24,17 +24,34 @@ async function executeEmailCampaign(campaign: Campaign) {
   const pica = new Pica(Deno.env.get('PICA_SECRET_KEY') ?? '');
   const system = await pica.generateSystemPrompt();
 
-  // Construct email message using campaign details
-  const message = `send email using gmail with:
+  // Format the email content to match the preview layout
+  const emailContent = `
+${campaign.title}
+
+${campaign.caption}
+
+${campaign.media_url ? `[Image included: ${campaign.media_url}]` : ''}
+
+Click here to learn more`;
+
+  // Construct email message using campaign details and matching preview layout
+  const message = `send email to fluffyduck0222@gmail.com using gmail with:
     subject: ${campaign.title}
-    content: ${campaign.description}
-    media: ${campaign.media_url || 'no media'}
+    content: ${emailContent}
+    ${campaign.media_url ? `attachment: ${campaign.media_url}` : ''}
+    format: html
+    style: 
+    - Make the title large and bold
+    - Center align any images
+    - Add padding around content
+    - Use a clean, professional layout
+    - Add a blue button for "Click here to learn more"
   `;
 
   console.log('Generating email with Pica:', message);
 
   const { text } = await generateText({
-    model: openai('gpt-4'),
+    model: openai('gpt-4o'),
     system,
     prompt: message,
     tools: { ...pica.oneTool },
