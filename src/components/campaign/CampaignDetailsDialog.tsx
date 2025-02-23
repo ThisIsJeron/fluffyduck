@@ -19,7 +19,6 @@ interface CampaignDetailsDialogProps {
 
 export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }: CampaignDetailsDialogProps) {
   const [timeScale, setTimeScale] = useState<"day" | "week">("day");
-  const queryClient = useQueryClient();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const formatDate = (date: Date | null) => {
@@ -28,20 +27,19 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
   };
 
   const handleDelete = async () => {
-    if (isDeleting) return; // Prevent multiple clicks
+    if (isDeleting) return;
     
     try {
       setIsDeleting(true);
       console.log('Starting campaign deletion:', campaign.id);
       
-      // Delete from campaigns table
-      const { error: campaignsError } = await supabase
-        .from('campaigns')
-        .delete()
-        .eq('id', campaign.id);
+      // Start a transaction for both deletions
+      const { data, error } = await supabase.rpc('delete_campaign', {
+        campaign_id: campaign.id
+      });
 
-      if (campaignsError) {
-        console.error('Error deleting from campaigns:', campaignsError);
+      if (error) {
+        console.error('Error in delete transaction:', error);
         toast({
           variant: "destructive",
           title: "Error",
@@ -50,26 +48,7 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
         return;
       }
 
-      console.log('Successfully deleted from campaigns table');
-
-      // Delete from selected_campaigns table
-      const { error: selectedError } = await supabase
-        .from('selected_campaigns')
-        .delete()
-        .eq('id', campaign.id);
-
-      if (selectedError) {
-        console.error('Error deleting from selected_campaigns:', selectedError);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to delete selected campaign"
-        });
-        return;
-      }
-
-      console.log('Successfully deleted from selected_campaigns table');
-      
+      console.log('Campaign successfully deleted');
       toast({
         title: "Success",
         description: "Campaign deleted successfully"
@@ -127,8 +106,9 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
                 variant="destructive"
                 className="w-full mt-4"
                 onClick={handleDelete}
+                disabled={isDeleting}
               >
-                Cancel Campaign
+                {isDeleting ? "Cancelling..." : "Cancel Campaign"}
               </Button>
             </div>
           </div>
