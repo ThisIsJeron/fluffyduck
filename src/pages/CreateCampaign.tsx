@@ -34,6 +34,13 @@ import { CalendarIcon } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
 
+interface CampaignCard {
+  id: number;
+  title: string;
+  description: string;
+  image: string;
+}
+
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   description: z.string().min(10, "Description must be at least 10 characters."),
@@ -58,6 +65,7 @@ const CreateCampaign = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [generatedCampaigns, setGeneratedCampaigns] = useState<CampaignCard[]>([]);
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
 
@@ -94,15 +102,32 @@ const CreateCampaign = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data = await response.json();
+      const campaignCards: CampaignCard[] = [
+        {
+          id: 1,
+          title: "Modern & Bold",
+          description: "A contemporary approach that captures attention with bold visuals and compelling messaging.",
+          image: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/campaign_media/1.jpeg`
+        },
+        {
+          id: 2,
+          title: "Classic & Elegant",
+          description: "Timeless design that emphasizes sophistication and brand heritage.",
+          image: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/campaign_media/2.jpeg`
+        },
+        {
+          id: 3,
+          title: "Creative & Playful",
+          description: "An innovative take that sparks engagement through creative storytelling.",
+          image: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/campaign_media/3.jpeg`
+        }
+      ];
 
-      if (data.generated_images) {
-        setGeneratedImages(data.generated_images);
-        toast({
-          title: "Success",
-          description: "Campaign generated successfully!",
-        });
-      }
+      setGeneratedCampaigns(campaignCards);
+      toast({
+        title: "Success",
+        description: "Campaign variations generated successfully!",
+      });
 
     } catch (error) {
       console.error('Error:', error);
@@ -121,7 +146,6 @@ const CreateCampaign = () => {
       <h1 className="text-4xl font-bold text-center mb-8">Create Campaign</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Left column - Image upload */}
         <div className="space-y-4">
           <Form {...form}>
             <div className="space-y-4">
@@ -134,7 +158,6 @@ const CreateCampaign = () => {
           </Form>
         </div>
 
-        {/* Right column - Campaign details */}
         <div>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -310,7 +333,6 @@ const CreateCampaign = () => {
         </div>
       </div>
 
-      {/* Display generated images */}
       {generatedImages.length > 0 && (
         <div className="mt-8">
           <h2 className="text-xl font-bold mb-4">Generated Images</h2>
@@ -322,6 +344,32 @@ const CreateCampaign = () => {
                 alt={`Generated image ${index + 1}`}
                 className="w-full h-auto rounded-lg shadow-md"
               />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {generatedCampaigns.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold mb-6">Campaign Variations</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {generatedCampaigns.map((campaign) => (
+              <div
+                key={campaign.id}
+                className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow"
+              >
+                <div className="aspect-video relative">
+                  <img
+                    src={campaign.image}
+                    alt={campaign.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold mb-2">{campaign.title}</h3>
+                  <p className="text-gray-600">{campaign.description}</p>
+                </div>
+              </div>
             ))}
           </div>
         </div>
