@@ -19,15 +19,21 @@ async function executePicaCommand(title: string, caption: string) {
     }
 
     console.log('Making request to Pica API...');
-    const response = await fetch("https://api.picahq.com/v1/execute", {
+    const apiUrl = "https://api.picahq.com/v1/execute";
+    console.log('API URL:', apiUrl);
+
+    const requestBody = JSON.stringify({
+      command: `send email to fluffyduck0222@gmail.com with subject "${title}" and content "${caption}" using gmail`
+    });
+    console.log('Request body:', requestBody);
+
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${PICA_API_KEY}`
       },
-      body: JSON.stringify({
-        command: `send email to fluffyduck0222@gmail.com with subject "${title}" and content "${caption}" using gmail`
-      })
+      body: requestBody
     });
 
     console.log('Pica API response status:', response.status);
