@@ -11,7 +11,7 @@ import GeneratedCampaigns from "@/components/campaign/GeneratedCampaigns";
 import { Campaign, UploadedFile } from "@/types/campaign";
 
 const CreateCampaign = () => {
-  // State management
+  // Add start and end date state
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -20,6 +20,8 @@ const CreateCampaign = () => {
   const [cadence, setCadence] = useState("");
   const [targetAudience, setTargetAudience] = useState("");
   const [platforms, setPlatforms] = useState("");
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -129,8 +131,8 @@ const CreateCampaign = () => {
         cadence: cadence,
         target_audience: targetAudience,
         platforms: [platforms],
-        start_date: null,
-        end_date: null
+        start_date: startDate,
+        end_date: endDate
       }));
 
       console.log('Generated campaigns:', generatedCampaigns);
@@ -178,6 +180,8 @@ const CreateCampaign = () => {
               cadence: cadence,
               target_audience: targetAudience,
               platforms: [platforms],
+              start_date: startDate?.toISOString(),
+              end_date: endDate?.toISOString(),
             })
             .select()
             .single();
@@ -188,7 +192,7 @@ const CreateCampaign = () => {
             throw new Error('Campaign was not created');
           }
 
-          // Navigate to completion page
+          // Navigate to completion page with the correct ID
           navigate(`/campaign-completion/${data.id}`);
           
           toast({
@@ -240,11 +244,15 @@ const CreateCampaign = () => {
               cadence={cadence}
               targetAudience={targetAudience}
               platforms={platforms}
+              startDate={startDate}
+              endDate={endDate}
               onCampaignNameChange={setCampaignName}
               onDescriptionChange={setDescription}
               onCadenceChange={setCadence}
               onTargetAudienceChange={setTargetAudience}
               onPlatformsChange={setPlatforms}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
             />
           </div>
 
