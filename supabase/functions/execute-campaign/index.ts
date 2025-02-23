@@ -1,9 +1,9 @@
 
+// @ts-ignore
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { Pica } from "@picahq/ai";
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
-
-const pica = new Pica(process.env.PICA_SECRET_KEY!);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,20 +11,26 @@ const corsHeaders = {
 };
 
 async function execute(message: string) {
-  const system = await pica.generateSystemPrompt();
-  
-  const { text } = await generateText({
-    model: openai("gpt-4o"),
-    system,
-    prompt: message,
-    tools: { ...pica.oneTool },
-    maxSteps: 10,
-  });
+  try {
+    const pica = new Pica(Deno.env.get("PICA_SECRET_KEY")!);
+    const system = await pica.generateSystemPrompt();
+    
+    const { text } = await generateText({
+      model: openai("gpt-4o"),
+      system,
+      prompt: message,
+      tools: { ...pica.oneTool },
+      maxSteps: 10,
+    });
 
-  return text;
+    return text;
+  } catch (error) {
+    console.error('Error in execute function:', error);
+    throw error;
+  }
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -32,25 +38,40 @@ Deno.serve(async (req) => {
 
   try {
     const { campaign } = await req.json();
-    console.log('Executing campaign:', campaign);
+    console.log('Received campaign:', campaign);
+
+    if (!campaign || !campaign.title || !campaign.caption) {
+      throw new Error('Missing required campaign data');
+    }
 
     const message = `send email to fluffyduck0222@gmail.com with subject ${campaign.title} and content ${campaign.caption} using gmail`;
+    console.log('Executing with message:', message);
+    
     const result = await execute(message);
-
     console.log('Execution result:', result);
+
     return new Response(
       JSON.stringify({ success: true, result }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        },
       }
     );
-  } catch (error) {
-    console.error('Error:', error);
+  } catch (error: any) {
+    console.error('Error in handler:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message || 'An unexpected error occurred'
+      }),
       { 
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        },
       }
     );
   }
