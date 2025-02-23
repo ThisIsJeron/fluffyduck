@@ -1,14 +1,31 @@
+"use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import MediaUpload from "@/components/campaign/MediaUpload";
-import CampaignDetailsForm from "@/components/campaign/CampaignDetailsForm";
-import GeneratedCampaigns from "@/components/campaign/GeneratedCampaigns";
-import { Campaign, UploadedFile } from "@/types/campaign";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "./ui/textarea";
+import { useToast } from "./ui/use-toast";
+import { Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { useState } from "react";
+import { ImageUpload } from "./ImageUpload";
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://fluffyduck-api.onrender.com';
 
@@ -26,6 +43,9 @@ const CreateCampaign = () => {
   
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -90,21 +110,13 @@ const CreateCampaign = () => {
       if (!campaignName || !description || !targetAudience || !platforms) {
         toast({
           title: "Error",
-          description: "Please fill in all required fields",
+          description: "Please upload an image",
           variant: "destructive",
         });
         return;
       }
 
-      if (uploadedFiles.length === 0) {
-        toast({
-          title: "Error",
-          description: "Please upload at least one image",
-          variant: "destructive",
-        });
-        return;
-      }
-
+      // Create FormData
       const formData = new FormData();
       
       const campaignData = {
@@ -190,177 +202,161 @@ const CreateCampaign = () => {
         throw new Error('Invalid response format from API');
       }
       
-      const generatedCampaigns: Campaign[] = responseData.generated_images.map((imageUrl: string) => ({
-        id: crypto.randomUUID(),
-        media_url: imageUrl,
-        caption: `${campaignName} - ${description.substring(0, 50)}...`,
-        hashtags: [
-          targetAudience.replace(/\s+/g, ''),
-          platforms,
-          'Marketing'
-        ].filter(Boolean),
-        selected: false,
-        title: campaignName,
-        description: description,
-        cadence: cadence,
-        target_audience: targetAudience,
-        platforms: [platforms],
-        start_date: startDate,
-        end_date: endDate
-      }));
+      // Update UI with generated images
+      setGeneratedImages(data.generated_images);
 
-      console.log('Generated campaigns:', generatedCampaigns);
-      setCampaigns(generatedCampaigns);
-      
       toast({
         title: "Success",
-        description: "Campaigns generated successfully",
+        description: "Campaign generated successfully!",
       });
-      
+
     } catch (error) {
       console.error('Error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        description: "Failed to generate campaign",
         variant: "destructive",
       });
     } finally {
-      setIsGenerating(false);
+      setIsLoading(false);
     }
-  };
-
-  const handleSelect = async (selectedCampaign: Campaign) => {
-    try {
-      const response = await fetch(selectedCampaign.media_url);
-      const blob = await response.blob();
-      const reader = new FileReader();
-      
-      reader.onloadend = async () => {
-        try {
-          const base64data = reader.result as string;
-          
-          const { data, error } = await supabase
-            .from('selected_campaigns')
-            .insert({
-              media_url: base64data,
-              caption: selectedCampaign.caption,
-              hashtags: selectedCampaign.hashtags,
-              title: campaignName,
-              description: description,
-              cadence: cadence,
-              target_audience: targetAudience,
-              platforms: [platforms],
-              start_date: startDate?.toISOString(),
-              end_date: endDate?.toISOString(),
-              metrics: { likes: 0, views: 0, comments: 0 }
-            })
-            .select()
-            .single();
-
-          if (error) throw error;
-
-          if (!data) {
-            throw new Error('Campaign was not created');
-          }
-
-          console.log("Created selected campaign:", data);
-
-          navigate(`/campaign-completion/${data.id}`);
-          
-          toast({
-            title: "Success",
-            description: "Campaign saved successfully",
-          });
-          
-        } catch (error) {
-          console.error('Error:', error);
-          toast({
-            title: "Error",
-            description: "Failed to save campaign",
-            variant: "destructive",
-          });
-        }
-      };
-
-      reader.readAsDataURL(blob);
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process image",
-        variant: "destructive",
-      });
-    }
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-secondary p-6">
-      <div className="container mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <h1 className="text-3xl font-bold mb-8">Create Campaign</h1>
+    <div className="max-w-2xl mx-auto p-4">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Campaign Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter campaign name" {...field} />
+                </FormControl>
+                <FormDescription>Name your marketing campaign.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          <div className="grid lg:grid-cols-2 gap-8">
-            <MediaUpload
-              uploadedFiles={uploadedFiles}
-              onFileUpload={handleFileUpload}
-              onRemoveFile={removeFile}
-            />
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Campaign Description</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Describe your campaign goals"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  What are you trying to achieve with this campaign?
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <CampaignDetailsForm
-              campaignName={campaignName}
-              description={description}
-              cadence={cadence}
-              targetAudience={targetAudience}
-              platforms={platforms}
-              startDate={startDate}
-              endDate={endDate}
-              onCampaignNameChange={setCampaignName}
-              onDescriptionChange={setDescription}
-              onCadenceChange={setCadence}
-              onTargetAudienceChange={setTargetAudience}
-              onPlatformsChange={setPlatforms}
-              onStartDateChange={setStartDate}
-              onEndDateChange={setEndDate}
+          <FormField
+            control={form.control}
+            name="target_audience"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Target Audience</FormLabel>
+                <FormControl>
+                  <Input placeholder="Who is this campaign for?" {...field} />
+                </FormControl>
+                <FormDescription>Describe your target audience.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="cadence"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Posting Cadence</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select posting frequency" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>How often will you post?</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="platforms"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Platform</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select platform" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Instagram">Instagram</SelectItem>
+                    <SelectItem value="Facebook">Facebook</SelectItem>
+                    <SelectItem value="LinkedIn">LinkedIn</SelectItem>
+                    <SelectItem value="Twitter">Twitter</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>Choose your primary platform.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="space-y-4">
+            <FormLabel>Upload Image</FormLabel>
+            <ImageUpload
+              value={uploadedFiles.map(file => URL.createObjectURL(file))}
+              onChange={(files) => setUploadedFiles(files)}
             />
           </div>
 
-          <div className="mt-8 text-center">
-            <Button
-              onClick={handleGenerate}
-              disabled={isGenerating}
-              className="bg-accent hover:bg-accent/90 text-white px-12 py-6 text-lg rounded-xl"
-            >
-              {isGenerating ? (
-                <>
-                  <span className="animate-spin mr-2">⚡</span>
-                  Generating Campaign...
-                </>
-              ) : (
-                "Generate Campaign"
-              )}
-            </Button>
-          </div>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Generate Campaign
+          </Button>
+        </form>
+      </Form>
 
-          {campaigns.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <GeneratedCampaigns 
-                campaigns={campaigns}
-                onSelect={handleSelect}
+      {/* Display generated images */}
+      {generatedImages.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xl font-bold mb-4">Generated Images</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {generatedImages.map((imageUrl, index) => (
+              <img
+                key={index}
+                src={imageUrl}
+                alt={`Generated image ${index + 1}`}
+                className="w-full h-auto rounded-lg shadow-md"
               />
-            </motion.div>
-          )}
-        </motion.div>
-      </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
-};
-
-export default CreateCampaign;
+}
