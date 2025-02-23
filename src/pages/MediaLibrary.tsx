@@ -18,10 +18,25 @@ const MediaLibrary = () => {
       const { data, error } = await supabase
         .from('campaigns')
         .select('id, media_url, title')
+        .not('media_url', 'is', null)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data || [];
+
+      // Filter out invalid URLs and duplicates
+      const validMedia = data?.filter(item => {
+        return item.media_url && 
+               item.media_url.trim() !== '' && 
+               item.media_url !== 'undefined' &&
+               item.media_url !== 'null';
+      }) || [];
+
+      // Remove duplicates based on media_url
+      const uniqueMedia = validMedia.filter((item, index, self) =>
+        index === self.findIndex((t) => t.media_url === item.media_url)
+      );
+
+      return uniqueMedia;
     }
   });
 
@@ -51,9 +66,9 @@ const MediaLibrary = () => {
 
           {isLoading ? (
             <div className="text-center py-12">Loading media...</div>
-          ) : (
+          ) : media && media.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {media?.map((item, index) => (
+              {media.map((item, index) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -65,12 +80,20 @@ const MediaLibrary = () => {
                     src={item.media_url}
                     alt={item.title || 'Campaign image'}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Handle broken images
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
                   />
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
                     <p className="text-white text-sm truncate">{item.title}</p>
                   </div>
                 </motion.div>
               ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              No media found
             </div>
           )}
         </div>
