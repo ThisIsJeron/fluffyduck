@@ -6,7 +6,8 @@ import {
   Users,
   Image,
   Settings,
-  History
+  History,
+  CalendarDays
 } from "lucide-react";
 
 const navItems = [
@@ -18,12 +19,17 @@ const navItems = [
   {
     label: "Current & Upcoming",
     icon: Clock,
-    href: "/dashboard"  // Changed to be the default dashboard view
+    href: "/dashboard"
   },
   {
     label: "Past Campaigns",
     icon: History,
-    href: "/dashboard/past"  // Changed to new route for past campaigns
+    href: "/dashboard/past"
+  },
+  {
+    label: "Reservations",
+    icon: CalendarDays,
+    href: "/reservations"
   },
   {
     label: "Contacts",
