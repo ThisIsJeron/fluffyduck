@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +9,8 @@ import MediaUpload from "@/components/campaign/MediaUpload";
 import CampaignDetailsForm from "@/components/campaign/CampaignDetailsForm";
 import GeneratedCampaigns from "@/components/campaign/GeneratedCampaigns";
 import { Campaign, UploadedFile } from "@/types/campaign";
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://fluffyduck-api.onrender.com';
 
 const CreateCampaign = () => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -60,7 +63,7 @@ const CreateCampaign = () => {
 
   const checkServerAvailability = async () => {
     try {
-      const response = await fetch('/api/health');
+      const response = await fetch(`${API_URL}/health`);
       if (!response.ok) {
         throw new Error('Backend server is not responding properly');
       }
@@ -81,7 +84,7 @@ const CreateCampaign = () => {
     try {
       const isServerAvailable = await checkServerAvailability();
       if (!isServerAvailable) {
-        throw new Error('Backend server is not available. Please ensure the backend server is running and accessible at /api/health');
+        throw new Error('Backend server is not available. Please ensure the backend server is running and accessible');
       }
 
       if (!campaignName || !description || !targetAudience || !platforms) {
@@ -138,7 +141,7 @@ const CreateCampaign = () => {
         }))
       });
 
-      const response = await fetch('/api/generate-campaign', {
+      const response = await fetch(`${API_URL}/generate-campaign`, {
         method: 'POST',
         body: formData
       });
@@ -164,7 +167,7 @@ const CreateCampaign = () => {
           if (!window.navigator.onLine) {
             errorMessage = 'You are currently offline. Please check your internet connection.';
           } else if (response.status === 404) {
-            errorMessage = 'The /api/generate-campaign endpoint does not exist. Please ensure the backend server is properly configured.';
+            errorMessage = 'The generate-campaign endpoint does not exist. Please ensure the backend server is properly configured.';
           } else if (response.status === 503 || response.status === 502 || response.status === 504) {
             errorMessage = 'The server is temporarily unavailable. Please try again in a few minutes.';
           }
