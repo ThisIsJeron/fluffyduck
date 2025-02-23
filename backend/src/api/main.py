@@ -145,17 +145,24 @@ async def enhance_restaurant_photo(
         print(f"Enhancing existing food photo for {primary_platform}...")
         print(f"Using prompt: {prompt}")
         
+        # Call FAL API
         result = fal_client.subscribe(
             "fal-ai/stable-diffusion-v15",
             arguments=arguments,
             with_logs=True
         )
         
+        print("Raw FAL API response:", result)  # Debug log
+        
         if not isinstance(result, dict) or 'images' not in result:
             raise ValueError(f"Invalid response format from Fal.ai: {result}")
 
+        # Extract image URLs
+        generated_urls = [img['url'] for img in result['images']]
+        print("Generated image URLs:", generated_urls)  # Debug log
+
         return {
-            'generated_images': [img['url'] for img in result['images']],
+            'generated_images': generated_urls,
             'prompt': prompt,
             'style_used': platform_style['style']
         }
@@ -231,8 +238,18 @@ async def generate_campaign(
                 reference_image_data=reference_image_data
             )
             
-            print("Enhancement completed successfully")
-            return result
+            print("Enhancement result:", result)  # Debug log
+            print("Generated images URLs:", result.get('generated_images', []))  # Debug log
+            
+            # Ensure we're returning the correct format
+            response = {
+                'generated_images': result['generated_images'],
+                'prompt': result['prompt'],
+                'style_used': result['style_used']
+            }
+            
+            print("Sending response:", response)  # Debug log
+            return response
             
         except Exception as e:
             print(f"Enhancement error: {str(e)}")
