@@ -1,9 +1,8 @@
-
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Campaign } from "@/types/campaign";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { CalendarDays, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +11,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface CampaignDetailsDialogProps {
   campaign: Campaign;
@@ -26,6 +26,7 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editedCampaign, setEditedCampaign] = useState<Campaign>(campaign);
+  const [localCampaign, setLocalCampaign] = useState<Campaign>(campaign);
 
   const queryClient = useQueryClient();
 
@@ -33,6 +34,10 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
     if (!date) return "Not set";
     return format(new Date(date), "MMMM dd, yyyy");
   };
+
+  useEffect(() => {
+    setLocalCampaign(campaign);
+  }, [campaign]);
 
   const handleSave = async () => {
     try {
@@ -137,8 +142,8 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div className="relative aspect-video">
             <img
-              src={campaign.media_url}
-              alt={campaign.title}
+              src={localCampaign.media_url}
+              alt={localCampaign.title}
               className="w-full h-full object-cover rounded-lg"
             />
           </div>
@@ -167,11 +172,20 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
 
                 <div className="space-y-2">
                   <Label htmlFor="target_audience">Target Audience</Label>
-                  <Input
-                    id="target_audience"
-                    value={editedCampaign.target_audience || ''}
-                    onChange={(e) => setEditedCampaign(prev => ({ ...prev, target_audience: e.target.value }))}
-                  />
+                  <Select 
+                    value={editedCampaign.target_audience || ''} 
+                    onValueChange={(value) => setEditedCampaign(prev => ({ ...prev, target_audience: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select target audience" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="restaurants">Restaurant Owners</SelectItem>
+                      <SelectItem value="caterers">Catering Services</SelectItem>
+                      <SelectItem value="hotels">Hotels</SelectItem>
+                      <SelectItem value="event-planners">Event Planners</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -196,7 +210,7 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
                   <Button 
                     variant="outline" 
                     onClick={() => {
-                      setEditedCampaign(campaign);
+                      setEditedCampaign(localCampaign);
                       setIsEditing(false);
                     }}
                   >
