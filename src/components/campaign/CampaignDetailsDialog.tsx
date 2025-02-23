@@ -5,10 +5,13 @@ import { Campaign } from "@/types/campaign";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useState } from "react";
 import { format } from "date-fns";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface CampaignDetailsDialogProps {
   campaign: Campaign;
@@ -20,10 +23,56 @@ interface CampaignDetailsDialogProps {
 export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }: CampaignDetailsDialogProps) {
   const [timeScale, setTimeScale] = useState<"day" | "week">("day");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editedCampaign, setEditedCampaign] = useState<Campaign>(campaign);
+
+  const queryClient = useQueryClient();
 
   const formatDate = (date: Date | null) => {
     if (!date) return "Not set";
     return format(new Date(date), "MMMM dd, yyyy");
+  };
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      console.log('Saving campaign updates:', editedCampaign);
+
+      const { error } = await supabase
+        .from('campaigns')
+        .update({
+          title: editedCampaign.title,
+          description: editedCampaign.description,
+          target_audience: editedCampaign.target_audience,
+          caption: editedCampaign.caption,
+          hashtags: editedCampaign.hashtags,
+        })
+        .eq('id', campaign.id);
+
+      if (error) {
+        console.error('Error updating campaign:', error);
+        throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Campaign updated successfully",
+      });
+
+      // Refresh the campaigns data
+      await queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update campaign",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = async () => {
@@ -33,7 +82,6 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
       setIsDeleting(true);
       console.log('Moving campaign to past campaigns:', campaign.id);
       
-      // Update the end date to current date to mark it as completed
       const { error } = await supabase
         .from('campaigns')
         .update({ end_date: new Date().toISOString() })
@@ -56,7 +104,7 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
       });
 
       onOpenChange(false);
-      await onDelete(); // This will trigger a refetch of the campaigns
+      await onDelete();
     } catch (error) {
       console.error('Unexpected error during cancellation:', error);
       toast({
@@ -68,6 +116,20 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
       setIsDeleting(false);
     }
   };
+
+  const renderMetrics = () => (
+    <div className="flex items-center gap-4 text-sm text-gray-600">
+      <div className="flex items-center gap-1">
+        <span>2.1k likes</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <span>32 comments</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <span>12.3k views</span>
+      </div>
+    </div>
+  );
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -82,36 +144,107 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
           </div>
           
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold">{campaign.title}</h2>
-            <p className="text-gray-600">{campaign.description}</p>
-            
-            <div className="space-y-3">
-              <h3 className="font-semibold">Campaign Details</h3>
-              <div className="bg-accent/5 p-3 rounded-lg space-y-2">
-                <div className="flex items-center gap-2 text-accent">
-                  <CalendarDays className="h-4 w-4" />
-                  <span className="font-medium">Campaign Duration</span>
+            {isEditing ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    value={editedCampaign.title}
+                    onChange={(e) => setEditedCampaign(prev => ({ ...prev, title: e.target.value }))}
+                  />
                 </div>
-                <p className="text-sm">
-                  Start Date: <span className="font-medium">{formatDate(campaign.start_date)}</span>
-                </p>
-                <p className="text-sm">
-                  End Date: <span className="font-medium">{formatDate(campaign.end_date)}</span>
-                </p>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={editedCampaign.description || ''}
+                    onChange={(e) => setEditedCampaign(prev => ({ ...prev, description: e.target.value }))}
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="target_audience">Target Audience</Label>
+                  <Input
+                    id="target_audience"
+                    value={editedCampaign.target_audience || ''}
+                    onChange={(e) => setEditedCampaign(prev => ({ ...prev, target_audience: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="caption">Caption</Label>
+                  <Textarea
+                    id="caption"
+                    value={editedCampaign.caption || ''}
+                    onChange={(e) => setEditedCampaign(prev => ({ ...prev, caption: e.target.value }))}
+                    rows={2}
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="flex items-center gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setEditedCampaign(campaign);
+                      setIsEditing(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
-              <p><span className="font-medium">Cadence:</span> {campaign.cadence}</p>
-              <p><span className="font-medium">Target Audience:</span> {campaign.target_audience}</p>
-              <p><span className="font-medium">Platforms:</span> {campaign.platforms?.join(", ")}</p>
-              
-              <Button
-                variant="destructive"
-                className="w-full mt-4"
-                onClick={handleCancel}
-                disabled={isDeleting}
-              >
-                {isDeleting ? "Cancelling..." : "Cancel Campaign"}
-              </Button>
-            </div>
+            ) : (
+              <>
+                <h2 className="text-2xl font-bold">{campaign.title}</h2>
+                <p className="text-gray-600">{campaign.description}</p>
+                
+                <div className="space-y-3">
+                  <h3 className="font-semibold">Campaign Details</h3>
+                  <div className="bg-accent/5 p-3 rounded-lg space-y-2">
+                    <div className="flex items-center gap-2 text-accent">
+                      <CalendarDays className="h-4 w-4" />
+                      <span className="font-medium">Campaign Duration</span>
+                    </div>
+                    <p className="text-sm">
+                      Start Date: <span className="font-medium">{formatDate(campaign.start_date)}</span>
+                    </p>
+                    <p className="text-sm">
+                      End Date: <span className="font-medium">{formatDate(campaign.end_date)}</span>
+                    </p>
+                  </div>
+                  <p><span className="font-medium">Target Audience:</span> {campaign.target_audience}</p>
+                  <p><span className="font-medium">Platforms:</span> {campaign.platforms?.join(", ")}</p>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditing(true)}
+                    className="mt-4"
+                  >
+                    Edit Campaign
+                  </Button>
+                </div>
+              </>
+            )}
+
+            <Button
+              variant="destructive"
+              className="w-full mt-4"
+              onClick={handleCancel}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Cancelling..." : "Cancel Campaign"}
+            </Button>
           </div>
         </div>
         
