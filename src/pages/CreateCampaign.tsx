@@ -11,8 +11,6 @@ import { formSchema } from "@/components/campaign/CampaignForm";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
-
 interface CampaignCard {
   id: number;
   title: string;
@@ -40,31 +38,20 @@ const CreateCampaign = () => {
         return;
       }
 
-      const formData = new FormData();
-      formData.append('reference_image', uploadedFiles[0]);
-      formData.append('campaign', JSON.stringify({
-        name: values.name,
-        description: values.description,
-        target_audience: values.target_audience,
-        cadence: values.cadence,
-        platforms: [values.platforms],
-        start_date: startDate,
-        end_date: endDate
-      }));
+      // Upload the reference image to Supabase storage
+      const file = uploadedFiles[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('campaign_media')
+        .upload(fileName, file);
 
-      const response = await fetch(`${API_URL}/api/generate-campaign`, {
-        method: 'POST',
-        body: formData
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (uploadError) {
+        throw uploadError;
       }
-      
-      const result = await response.json();
-      console.log('API Response:', result); // Debug log
-      
-      // Get public URLs for the generated images
+
+      // Get public URLs for the sample campaign images
       const { data: { publicUrl: url1 } } = supabase
         .storage
         .from('campaign_media')
