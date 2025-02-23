@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Campaign } from "@/types/campaign";
 import { useState, useEffect } from "react";
@@ -63,32 +62,27 @@ Target Audience: ${campaign.target_audience || ''}
 Caption: ${campaign.caption || ''}
 ${campaign.hashtags?.length ? 'Hashtags: ' + campaign.hashtags.join(' ') : ''}`.trim();
 
-      // Make a direct GET request to the provided URL
+      // Make a direct GET request to the provided URL with no-cors mode
       const url = `https://53b2-12-206-80-188.ngrok-free.app/generate?message=${encodeURIComponent(`Send email to fluffyduck0222@gmail.com via gmail with content "${content}"`)}`;
       
       console.log('Making GET request to:', url);
-      const response = await fetch(url);
-      const responseText = await response.text();
-      console.log('Response:', responseText);
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Email sent successfully"
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to send email"
-        });
-      }
+      await fetch(url, { 
+        mode: 'no-cors',
+        method: 'GET'
+      });
+      
+      // Since we're using no-cors, we can't read the response
+      // We'll assume success if no error was thrown
+      toast({
+        title: "Request sent",
+        description: "Email request has been sent"
+      });
     } catch (error) {
       console.error('Error:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to send email"
+        description: "Failed to send email request"
       });
     } finally {
       setIsPosting(false);
