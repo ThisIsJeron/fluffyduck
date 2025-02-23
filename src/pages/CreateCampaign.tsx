@@ -124,13 +124,15 @@ const CreateCampaign = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Left column - Image upload */}
         <div className="space-y-4">
-          <div className="space-y-4">
-            <FormLabel>Upload Image</FormLabel>
-            <ImageUpload
-              value={uploadedFiles.map(file => URL.createObjectURL(file))}
-              onChange={(files) => setUploadedFiles(files)}
-            />
-          </div>
+          <Form {...form}>
+            <div className="space-y-4">
+              <FormLabel>Upload Image</FormLabel>
+              <ImageUpload
+                value={uploadedFiles.map(file => URL.createObjectURL(file))}
+                onChange={(files) => setUploadedFiles(files)}
+              />
+            </div>
+          </Form>
         </div>
 
         {/* Right column - Campaign details */}
