@@ -95,6 +95,9 @@ const CreateCampaign = () => {
       // Call the API with the ngrok URL
       const response = await fetch('https://7a22-12-206-80-188.ngrok-free.app/api/generate-campaign', {
         method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+        },
         body: formData
       });
 
@@ -104,6 +107,11 @@ const CreateCampaign = () => {
       }
 
       const result = await response.json();
+      console.log('API Response:', result);
+
+      if (!result.generated_images || !Array.isArray(result.generated_images)) {
+        throw new Error('Invalid response format from API');
+      }
       
       // Transform the API response into Campaign objects
       const generatedCampaigns: Campaign[] = result.generated_images.map((imageUrl: string) => ({
@@ -120,9 +128,12 @@ const CreateCampaign = () => {
         description: description,
         cadence: cadence,
         target_audience: targetAudience,
-        platforms: [platforms]
+        platforms: [platforms],
+        start_date: null,
+        end_date: null
       }));
 
+      console.log('Generated campaigns:', generatedCampaigns);
       setCampaigns(generatedCampaigns);
       
       toast({
