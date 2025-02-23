@@ -1,14 +1,21 @@
 from supabase import create_client
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 
-def get_supabase_client():
-    load_dotenv()
-    
-    supabase_url = os.getenv("SUPABASE_URL")
-    supabase_key = os.getenv("SUPABASE_ANON_KEY")
-    
-    if not supabase_url or not supabase_key:
-        raise ValueError("Missing Supabase environment variables")
+load_dotenv()
+
+class SupabaseClient:
+    def __init__(self):
+        self.url = os.getenv("SUPABASE_URL")
+        self.key = os.getenv("SUPABASE_ANON_KEY")
         
-    return create_client(supabase_url, supabase_key)
+        if not self.url or not self.key:
+            raise ValueError("Missing Supabase environment variables")
+        
+        self.client = create_client(self.url, self.key)
+
+    def get_client(self):
+        return self.client
+
+# Create a singleton instance
+supabase_client = SupabaseClient().get_client()
