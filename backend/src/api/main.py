@@ -51,14 +51,15 @@ async def process_image_for_fal(image: UploadFile) -> str:
     """Process uploaded image for FAL API"""
     try:
         contents = await image.read()
+        if not contents:
+            raise ValueError("Empty image file")
+            
         base64_image = base64.b64encode(contents).decode('utf-8')
+        await image.seek(0)  # Reset file pointer
         return f"data:image/{image.content_type.split('/')[-1]};base64,{base64_image}"
     except Exception as e:
         print(f"Error processing image: {str(e)}")
-        raise HTTPException(
-            status_code=400,
-            detail=f"Error processing image: {str(e)}"
-        )
+        raise ValueError(f"Error processing image: {str(e)}")
 
 async def enhance_restaurant_photo(
     name: str,
@@ -70,7 +71,7 @@ async def enhance_restaurant_photo(
     """Enhance existing restaurant food photography while maintaining composition"""
     try:
         # Platform-specific enhancement styles
-        primary_platform = platforms[0]
+        primary_platform = platforms[0] if platforms else "Instagram"
         style_modifiers = {
             'Instagram': {
                 'style': (
@@ -145,14 +146,14 @@ async def enhance_restaurant_photo(
             ),
             "image_size": platform_style['aspect_ratio'],
             "num_inference_steps": 50,
-            "guidance_scale": 7.0,          # Balanced to maintain original image
+            "guidance_scale": 7.0,
             "num_images": 3,
             "scheduler": "DPM++ 2M Karras",
-            "image_guidance_scale": 2.5,    # High for stronger reference adherence
+            "image_guidance_scale": 2.5,
             "reference_image": reference_image_data,
-            "reference_weight": 0.98,       # Very high to ensure minimal deviation
-            "control_guidance_start": 0.0,  # Start from beginning
-            "control_guidance_end": 1.0     # Continue to end
+            "reference_weight": 0.98,
+            "control_guidance_start": 0.0,
+            "control_guidance_end": 1.0
         }
 
         print(f"Enhancing existing food photo for {primary_platform}...")
@@ -168,17 +169,14 @@ async def enhance_restaurant_photo(
             raise ValueError(f"Invalid response format from Fal.ai: {result}")
 
         return {
-            'generated_images': [img['url'] for img in result['images']],  # Changed back to generated_images
+            'generated_images': [img['url'] for img in result['images']],
             'prompt': prompt,
             'style_used': platform_style['style']
         }
 
     except Exception as e:
         print(f"Error enhancing food image: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error enhancing image: {str(e)}"
-        )
+        raise
 
 @app.post("/api/generate-campaign", response_model=ImageGenerationResponse)
 async def generate_campaign(
@@ -187,44 +185,80 @@ async def generate_campaign(
 ):
     """Enhance existing restaurant food photos for marketing campaign"""
     try:
-        # Validate and parse campaign data
-        print(f"Received campaign data: {campaign}")
-        campaign_data = json.loads(campaign)
-        campaign_request = CampaignRequest(**campaign_data)
+        # Debug information
+        print("\n=== Starting new campaign generation ===")
+        print(f"Campaign data received: {campaign}")
+        print(f"Image file received: {reference_image.filename}")
+        print(f"Image content type: {reference_image.content_type}")
+
+        # Parse campaign data
+        try:
+            campaign_data = json.loads(campaign)
+            campaign_request = CampaignRequest(**campaign_data)
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error: {str(e)}")
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid JSON format in campaign data"
+            )
 
         # Validate image
+        if not reference_image.filename:
+            raise HTTPException(
+                status_code=400,
+                detail="No image file provided"
+            )
+
+        if not reference_image.content_type:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid image format: content type missing"
+            )
+
         if not reference_image.content_type.startswith('image/'):
             raise HTTPException(
                 status_code=400,
-                detail="Uploaded file must be an image"
+                detail=f"Invalid file type: {reference_image.content_type}. Must be an image."
             )
 
-        # Process the uploaded image
-        print(f"Processing food image: {reference_image.filename}")
-        reference_image_data = await process_image_for_fal(reference_image)
+        # Process image
+        try:
+            print("Processing image...")
+            reference_image_data = await process_image_for_fal(reference_image)
+            print("Image processed successfully")
+        except Exception as e:
+            print(f"Image processing error: {str(e)}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Error processing image: {str(e)}"
+            )
 
-        # Enhance the existing food photography
-        result = await enhance_restaurant_photo(
-            name=campaign_request.name,
-            description=campaign_request.description,
-            target_audience=campaign_request.target_audience,
-            platforms=campaign_request.platforms,
-            reference_image_data=reference_image_data
-        )
-        
-        print(f"Enhancement completed successfully")
-        return result
-        
-    except json.JSONDecodeError as e:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid JSON format in campaign data"
-        )
+        # Enhance photo
+        try:
+            print("Starting photo enhancement...")
+            result = await enhance_restaurant_photo(
+                name=campaign_request.name,
+                description=campaign_request.description,
+                target_audience=campaign_request.target_audience,
+                platforms=campaign_request.platforms,
+                reference_image_data=reference_image_data
+            )
+            print("Enhancement completed successfully")
+            return result
+        except Exception as e:
+            print(f"Enhancement error: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error enhancing photo: {str(e)}"
+            )
+
+    except HTTPException as he:
+        raise he
     except Exception as e:
-        print(f"Error in generate_campaign: {str(e)}")
+        print(f"Unexpected error: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error processing campaign: {str(e)}"
+            detail=f"Unexpected error: {str(e)}"
         )
 
 @app.get("/")
