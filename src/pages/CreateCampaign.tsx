@@ -1,33 +1,3 @@
-<<<<<<< HEAD
-
-import { useCampaignCreation } from "@/hooks/useCampaignCreation";
-import CampaignCreationForm from "@/components/campaign/CampaignCreationForm";
-
-const CreateCampaign = () => {
-  const {
-    uploadedFiles,
-    isGenerating,
-    campaigns,
-    campaignName,
-    description,
-    cadence,
-    targetAudience,
-    platforms,
-    startDate,
-    endDate,
-    handleFileUpload,
-    removeFile,
-    handleSelect,
-    handleGenerate,
-    setCampaignName,
-    setDescription,
-    setCadence,
-    setTargetAudience,
-    setPlatforms,
-    setStartDate,
-    setEndDate
-  } = useCampaignCreation();
-=======
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -38,7 +8,6 @@ import MediaUpload from "@/components/campaign/MediaUpload";
 import CampaignDetailsForm from "@/components/campaign/CampaignDetailsForm";
 import GeneratedCampaigns from "@/components/campaign/GeneratedCampaigns";
 import { Campaign, UploadedFile } from "@/types/campaign";
-import { generateCampaign } from "@/api/api";
 
 const CreateCampaign = () => {
   // State management
@@ -49,7 +18,7 @@ const CreateCampaign = () => {
   const [description, setDescription] = useState("");
   const [cadence, setCadence] = useState("");
   const [targetAudience, setTargetAudience] = useState("");
-  const [platforms, setPlatforms] = useState<string[]>([]); // Changed to string array
+  const [platforms, setPlatforms] = useState("");
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -75,69 +44,12 @@ const CreateCampaign = () => {
     });
   };
 
-  // Handle campaign selection
-  const handleSelect = async (selectedCampaign: Campaign) => {
-    try {
-      // Get the image data
-      const response = await fetch(selectedCampaign.media_url);
-      const blob = await response.blob();
-      
-      // Save to Supabase
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('campaign-images')
-        .upload(`campaign-${Date.now()}.jpg`, blob);
-
-      if (uploadError) throw uploadError;
-
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('campaign-images')
-        .getPublicUrl(uploadData.path);
-
-      // Save campaign to database
-      const { data, error } = await supabase
-        .from('campaigns')
-        .insert({
-          media_url: publicUrl,
-          caption: selectedCampaign.caption,
-          hashtags: selectedCampaign.hashtags,
-          selected: true,
-          title: campaignName,
-          description: description,
-          cadence: cadence,
-          target_audience: targetAudience,
-          platforms: platforms,
-          prompt: selectedCampaign.prompt,
-          style_used: selectedCampaign.style_used
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      if (!data) {
-        throw new Error('Campaign was not created');
-      }
-
-      // Navigate to completion page
-      navigate(`/campaign-completion/${data.id}`);
-      
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save campaign",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Generate campaign images
+  // Handle campaign generation
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      // Validate inputs
-      if (!campaignName || !description || !targetAudience || platforms.length === 0) {
+      // Validation
+      if (!campaignName || !description || !targetAudience || !platforms) {
         toast({
           title: "Error",
           description: "Please fill in all required fields",
@@ -146,30 +58,56 @@ const CreateCampaign = () => {
         return;
       }
 
-      // Prepare campaign data
+      if (uploadedFiles.length === 0) {
+        toast({
+          title: "Error",
+          description: "Please upload at least one image",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create FormData object
+      const formData = new FormData();
+      
+      // Add the campaign data
       const campaignData = {
         name: campaignName,
         description: description,
         target_audience: targetAudience,
         cadence: cadence,
-        platforms: platforms
+        platforms: platforms ? [platforms] : []
       };
+      
+      formData.append('campaign', JSON.stringify(campaignData));
+      
+      // Add the reference image
+      formData.append('reference_image', uploadedFiles[0]);
 
-      // Get reference image if available
-      const referenceImage = uploadedFiles[0] || null;
+      // Call the API
+      const response = await fetch('http://localhost:8000/api/generate-campaign', {
+        method: 'POST',
+        body: formData
+      });
 
-      // Call API to generate images
-      const result = await generateCampaign(campaignData, referenceImage);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to generate images');
+      }
 
-      // Transform API response to Campaign type
-      const generatedCampaigns: Campaign[] = result.generated_images.map((imageUrl, index) => ({
+      const result = await response.json();
+      
+      // Transform the API response into Campaign objects
+      const generatedCampaigns: Campaign[] = result.generated_images.map((imageUrl: string) => ({
         id: crypto.randomUUID(),
         media_url: imageUrl,
-        caption: `${campaignName} - Option ${index + 1}`,
-        hashtags: generateHashtags(campaignName, targetAudience),
-        selected: false,
-        prompt: result.prompt,
-        style_used: result.style_used
+        caption: `${campaignName} - ${description.substring(0, 50)}...`,
+        hashtags: [
+          targetAudience.replace(/\s+/g, ''),
+          platforms,
+          'Marketing'
+        ].filter(Boolean),
+        selected: false
       }));
 
       setCampaigns(generatedCampaigns);
@@ -190,43 +128,74 @@ const CreateCampaign = () => {
       setIsGenerating(false);
     }
   };
->>>>>>> b937f81 (all the changes)
 
-  // Helper function to generate hashtags
-  const generateHashtags = (name: string, audience: string): string[] => {
-    const baseHashtags = name.split(' ').map(word => `#${word.replace(/[^a-zA-Z0-9]/g, '')}`);
-    const audienceHashtags = audience.split(' ').map(word => `#${word.replace(/[^a-zA-Z0-9]/g, '')}`);
-    return [...new Set([...baseHashtags, ...audienceHashtags])].filter(tag => tag.length > 1);
+  // Handle campaign selection
+  const handleSelect = async (selectedCampaign: Campaign) => {
+    try {
+      // Fetch the image from the URL
+      const response = await fetch(selectedCampaign.media_url);
+      const blob = await response.blob();
+      const reader = new FileReader();
+      
+      reader.onloadend = async () => {
+        try {
+          const base64data = reader.result as string;
+          
+          // Save to Supabase
+          const { data, error } = await supabase
+            .from('campaigns')
+            .insert({
+              media_url: base64data,
+              caption: selectedCampaign.caption,
+              hashtags: selectedCampaign.hashtags,
+              selected: true,
+              title: campaignName,
+              description: description,
+              cadence: cadence,
+              target_audience: targetAudience,
+              platforms: platforms ? [platforms] : [],
+            })
+            .select()
+            .single();
+
+          if (error) throw error;
+
+          if (!data) {
+            throw new Error('Campaign was not created');
+          }
+
+          // Navigate to completion page
+          navigate(`/campaign-completion/${data.id}`);
+          
+          toast({
+            title: "Success",
+            description: "Campaign saved successfully",
+          });
+          
+        } catch (error) {
+          console.error('Error:', error);
+          toast({
+            title: "Error",
+            description: "Failed to save campaign",
+            variant: "destructive",
+          });
+        }
+      };
+
+      reader.readAsDataURL(blob);
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process image",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <div className="min-h-screen bg-secondary p-6">
       <div className="container mx-auto">
-<<<<<<< HEAD
-        <CampaignCreationForm
-          uploadedFiles={uploadedFiles}
-          isGenerating={isGenerating}
-          campaigns={campaigns}
-          campaignName={campaignName}
-          description={description}
-          cadence={cadence}
-          targetAudience={targetAudience}
-          platforms={platforms}
-          startDate={startDate}
-          endDate={endDate}
-          onFileUpload={handleFileUpload}
-          onRemoveFile={removeFile}
-          onSelect={handleSelect}
-          onGenerate={handleGenerate}
-          onCampaignNameChange={setCampaignName}
-          onDescriptionChange={setDescription}
-          onCadenceChange={setCadence}
-          onTargetAudienceChange={setTargetAudience}
-          onPlatformsChange={setPlatforms}
-          onStartDateChange={setStartDate}
-          onEndDateChange={setEndDate}
-        />
-=======
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -262,10 +231,10 @@ const CreateCampaign = () => {
               className="bg-accent hover:bg-accent/90 text-white px-12 py-6 text-lg rounded-xl"
             >
               {isGenerating ? (
-                <div className="flex items-center gap-2">
-                  <span className="animate-spin">⚪</span>
+                <>
+                  <span className="animate-spin mr-2">⚡</span>
                   Generating Campaign...
-                </div>
+                </>
               ) : (
                 "Generate Campaign"
               )}
@@ -274,8 +243,8 @@ const CreateCampaign = () => {
 
           {campaigns.length > 0 && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
               <GeneratedCampaigns 
@@ -285,7 +254,6 @@ const CreateCampaign = () => {
             </motion.div>
           )}
         </motion.div>
->>>>>>> b937f81 (all the changes)
       </div>
     </div>
   );
