@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Bot, Users, Briefcase, ChartBar, Mail, Phone, ArrowRight } from "lucide-react";
+import { Bot, Briefcase, ChartBar, Mail, Phone, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
@@ -49,10 +48,10 @@ const Index = () => {
             className="max-w-3xl mx-auto"
           >
             <h1 className="text-4xl md:text-6xl font-bold text-primary mb-6">
-              Transform Your Restaurant's Digital Presence with AI
+              FluffyDuck: Your AI-Powered Assistant for Local Restaurant Marketing & Reservations
             </h1>
             <p className="text-xl text-gray-600 mb-8">
-              Automate customer interactions, streamline catering operations, and grow your B2B relationships effortlessly.
+              Automate customer interactions, streamline catering operations, and grow your business effortlessly.
             </p>
             <Link to="/create-campaign" className="bg-accent text-white px-8 py-4 rounded-full text-lg font-medium hover:bg-accent/90 transition-colors inline-flex items-center gap-2">
               Create a Campaign
@@ -66,17 +65,12 @@ const Index = () => {
       <section id="features" className="py-20 bg-secondary">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-16">Transform Your Business</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
                 icon: <Bot className="w-8 h-8 text-accent" />,
                 title: "AI-Powered Communication",
-                description: "Instant responses to customer inquiries 24/7"
-              },
-              {
-                icon: <Users className="w-8 h-8 text-accent" />,
-                title: "B2B Relationship Management",
-                description: "Build and maintain strong business partnerships"
+                description: "Instant responses to customer inquiries 24/7. Call (415) 851-8144 to give our reservation system a try!"
               },
               {
                 icon: <Briefcase className="w-8 h-8 text-accent" />,
@@ -217,11 +211,11 @@ const Index = () => {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Mail className="w-5 h-5" />
-                  <span className="text-gray-400">contact@fluffyduck.ai</span>
+                  <span className="text-gray-400">fluffyduck0222@gmail.com</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-5 h-5" />
-                  <span className="text-gray-400">+1 (555) 123-4567</span>
+                  <span className="text-gray-400">1 (415) 851-8144</span>
                 </div>
               </div>
             </div>

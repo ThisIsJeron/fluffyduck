@@ -19,20 +19,20 @@ const Dashboard = () => {
   const isPastRoute = location.pathname === '/dashboard/past';
 
   const { data: campaigns, isLoading, refetch } = useQuery({
-    queryKey: ['campaigns'],
+    queryKey: ['selected-campaigns'],
     queryFn: async () => {
-      console.log('Fetching campaigns...');
+      console.log('Fetching selected campaigns...');
       const { data, error } = await supabase
-        .from('campaigns')
+        .from('selected_campaigns')
         .select('*')
         .order('end_date', { ascending: !isPastRoute });
 
       if (error) {
-        console.error('Error fetching campaigns:', error);
+        console.error('Error fetching selected campaigns:', error);
         throw error;
       }
 
-      console.log('Fetched campaigns:', data);
+      console.log('Fetched selected campaigns:', data);
       return (data || []).map(campaign => ({
         ...campaign,
         start_date: campaign.start_date ? new Date(campaign.start_date) : null,

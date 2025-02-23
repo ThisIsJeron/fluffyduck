@@ -6,14 +6,14 @@ export interface UploadedFile extends File {
 export interface Campaign {
   id: string;
   media_url: string;
-  caption: string;
-  hashtags: string[];
-  selected: boolean;
+  caption: string | null;
+  hashtags: string[] | null;
+  selected?: boolean; // Made optional with ?
   title: string;
-  description: string;
-  cadence: string;
-  target_audience: string;
-  platforms: string[];
+  description: string | null;
+  cadence: string | null;
+  target_audience: string | null;
+  platforms: string[] | null;
   start_date: Date | null;
   end_date: Date | null;
 }

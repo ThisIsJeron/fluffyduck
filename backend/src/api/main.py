@@ -22,6 +22,7 @@ app.add_middleware(
     allow_origins=[
         "https://fluffyduck.vercel.app",
         "http://localhost:5173",
+        "https://e795fb5e-38f2-412d-93de-ba7ee9aa9f79.lovableproject.com",
         "*"
     ],
     allow_credentials=True,

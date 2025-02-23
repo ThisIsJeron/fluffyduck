@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,16 +28,18 @@ import {
 import { useState } from "react";
 import MediaUpload from "@/components/campaign/MediaUpload";
 
+
+import { ImageUpload } from "@/components/ImageUpload";
+import { CampaignForm } from "@/components/campaign/CampaignForm";
+import { CampaignCards } from "@/components/campaign/CampaignCards";
+import type { z } from "zod";
+import { formSchema } from "@/components/campaign/CampaignForm";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+
+
 type Step = "input" | "options" | "congrats";
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
-
-const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
-  description: z.string().min(10, "Description must be at least 10 characters."),
-  target_audience: z.string().min(2, "Target audience is required."),
-  cadence: z.string(),
-  platforms: z.string()
-});
 
 const CreateCampaign = () => {
   const currentStep: Step = "input"
@@ -51,66 +54,85 @@ const CreateCampaign = () => {
     }
   });
 
+interface CampaignCard {
+  id: number;
+  title: string;
+  description: string;
+  image: string;
+}
+
+const CreateCampaign = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [generatedCampaigns, setGeneratedCampaigns] = useState<CampaignCard[]>([]);
+  const [startDate, setStartDate] = useState<Date>();
+  const [endDate, setEndDate] = useState<Date>();
+  const [formData, setFormData] = useState<any>(null);
 
-  console.log('API URL:', API_URL); // Debug log
+  const generateCampaignCards = async () => {
+    // Get public URLs for the sample campaign images
+    const { data: { publicUrl: url1 } } = supabase
+      .storage
+      .from('campaign_media')
+      .getPublicUrl('1.jpeg');
+    
+    const { data: { publicUrl: url2 } } = supabase
+      .storage
+      .from('campaign_media')
+      .getPublicUrl('2.jpeg');
+    
+    const { data: { publicUrl: url3 } } = supabase
+      .storage
+      .from('campaign_media')
+      .getPublicUrl('3.jpeg');
+
+    return [
+      {
+        id: 1,
+        title: "Modern & Bold",
+        description: "A contemporary approach that captures attention with bold visuals and compelling messaging.",
+        image: url1
+      },
+      {
+        id: 2,
+        title: "Classic & Elegant",
+        description: "Timeless design that emphasizes sophistication and brand heritage.",
+        image: url2
+      },
+      {
+        id: 3,
+        title: "Creative & Playful",
+        description: "An innovative take that sparks engagement through creative storytelling.",
+        image: url3
+      }
+    ];
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
-      console.log('Making request to:', API_URL);
-      console.log('Form values:', values);
-      console.log('Files:', uploadedFiles);
-
-      if (uploadedFiles.length === 0) {
-        toast({
-          title: "Error",
-          description: "Please upload an image",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('reference_image', uploadedFiles[0]);
-      formData.append('campaign', JSON.stringify({
-        name: values.name,
-        description: values.description,
-        target_audience: values.target_audience,
-        cadence: values.cadence,
-        platforms: [values.platforms]
-      }));
-
-      const response = await fetch(`${API_URL}/api/generate-campaign`, {
-        method: 'POST',
-        body: formData
+      // Store form data for use in campaign selection
+      setFormData({
+        ...values,
+        start_date: startDate,
+        end_date: endDate,
       });
 
-      console.log('Response status:', response.status);
+      // Generate campaign variations
+      const campaignCards = await generateCampaignCards();
+      setGeneratedCampaigns(campaignCards);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Response data:', data);
-
-      if (data.generated_images) {
-        setGeneratedImages(data.generated_images);
-        toast({
-          title: "Success",
-          description: "Campaign generated successfully!",
-        });
-      }
+      toast({
+        title: "Success",
+        description: "Campaign variations generated successfully!",
+      });
 
     } catch (error) {
       console.error('Error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate campaign",
+        description: "Failed to generate campaign variations. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -119,149 +141,33 @@ const CreateCampaign = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Campaign Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter campaign name" {...field} />
-                </FormControl>
-                <FormDescription>Name your marketing campaign.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Campaign Description</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Describe your campaign goals"
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription>
-                  What are you trying to achieve with this campaign?
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="target_audience"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Target Audience</FormLabel>
-                <FormControl>
-                  <Input placeholder="Who is this campaign for?" {...field} />
-                </FormControl>
-                <FormDescription>Describe your target audience.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="cadence"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Posting Cadence</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select posting frequency" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormDescription>How often will you post?</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="platforms"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Platform</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select platform" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Instagram">Instagram</SelectItem>
-                    <SelectItem value="Facebook">Facebook</SelectItem>
-                    <SelectItem value="LinkedIn">LinkedIn</SelectItem>
-                    <SelectItem value="Twitter">Twitter</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormDescription>Choose your primary platform.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
+    <div className="max-w-7xl mx-auto p-4">
+      <h1 className="text-4xl font-bold text-center mb-8">Create Campaign</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-4">
           <div className="space-y-4">
-            <FormLabel>Upload Image</FormLabel>
-            <MediaUpload
-              uploadedFiles={uploadedFiles.map(file => ({
-                preview: URL.createObjectURL(file),
-                lastModified: file.lastModified,
-                name: file.name,
-                webkitRelativePath: file.webkitRelativePath,
-                size: file.size
-              }))}
-              onFileUpload={(e) => {
-                const files = Array.from(e.target.files || []);
-                setUploadedFiles(files);
-              }} onChange={(files) => setUploadedFiles(files)}
+            <Label htmlFor="image-upload">Upload Image</Label>
+            <ImageUpload
+              value={uploadedFiles.map(file => URL.createObjectURL(file))}
+              onChange={(files) => setUploadedFiles(files)}
             />
           </div>
-
-          <Button type="submit" disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Generate Campaign
-          </Button>
-        </form>
-      </Form>
-
-      {/* Display generated images */}
-      {generatedImages && generatedImages.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-xl font-bold mb-4">Generated Images</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {generatedImages.map((imageUrl, index) => (
-              <img
-                key={index}
-                src={imageUrl}
-                alt={`Generated image ${index + 1}`}
-                className="w-full h-auto rounded-lg shadow-md"
-              />
-            ))}
-          </div>
         </div>
-      )}
+
+        <div>
+          <CampaignForm
+            onSubmit={onSubmit}
+            isLoading={isLoading}
+            startDate={startDate}
+            endDate={endDate}
+            setStartDate={setStartDate}
+            setEndDate={setEndDate}
+          />
+        </div>
+      </div>
+
+      <CampaignCards campaigns={generatedCampaigns} formData={formData} />
     </div>
   );
 };

@@ -1,17 +1,13 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Campaign } from "@/types/campaign";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
-import { CalendarDays, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/ui/use-toast";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PlatformPreview } from "./previews/PlatformPreview";
+import { CampaignMetrics } from "./metrics/CampaignMetrics";
+import { CampaignContent } from "./details/CampaignContent";
 
 interface CampaignDetailsDialogProps {
   campaign: Campaign;
@@ -20,24 +16,78 @@ interface CampaignDetailsDialogProps {
   onDelete: () => Promise<void>;
 }
 
+const mockTimeData = {
+  day: [
+    { time: "00:00", views: 120, likes: 45, comments: 12 },
+    { time: "06:00", views: 240, likes: 90, comments: 24 },
+    { time: "12:00", views: 580, likes: 210, comments: 56 },
+    { time: "18:00", views: 890, likes: 320, comments: 89 },
+    { time: "23:59", views: 1200, likes: 450, comments: 120 },
+  ],
+  week: [
+    { time: "Mon", views: 1200, likes: 450, comments: 120 },
+    { time: "Tue", views: 2400, likes: 890, comments: 240 },
+    { time: "Wed", views: 5800, likes: 2100, comments: 560 },
+    { time: "Thu", views: 8900, likes: 3200, comments: 890 },
+    { time: "Fri", views: 12000, likes: 4500, comments: 1200 },
+    { time: "Sat", views: 15000, likes: 5600, comments: 1500 },
+    { time: "Sun", views: 18000, likes: 6700, comments: 1800 },
+  ],
+};
+
 export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }: CampaignDetailsDialogProps) {
   const [timeScale, setTimeScale] = useState<"day" | "week">("day");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
   const [editedCampaign, setEditedCampaign] = useState<Campaign>(campaign);
   const [localCampaign, setLocalCampaign] = useState<Campaign>(campaign);
 
   const queryClient = useQueryClient();
 
-  const formatDate = (date: Date | null) => {
-    if (!date) return "Not set";
-    return format(new Date(date), "MMMM dd, yyyy");
-  };
-
   useEffect(() => {
     setLocalCampaign(campaign);
   }, [campaign]);
+
+  const handleManualPost = async () => {
+    try {
+      setIsPosting(true);
+      console.log('Triggering manual post for campaign:', campaign.id);
+      
+      const content = `
+Title: ${campaign.title}
+Description: ${campaign.description || ''}
+Target Audience: ${campaign.target_audience || ''}
+Caption: ${campaign.caption || ''}
+Image: ${campaign.id}
+${campaign.hashtags?.length ? 'Hashtags: ' + campaign.hashtags.join(' ') : ''}`.trim();
+
+      const url = `https://8cbf-12-206-80-188.ngrok-free.app/generate?message=${encodeURIComponent(`Send email to fluffyduck0222@gmail.com via gmail with content "${content}"`)}`;
+      
+      console.log('Making GET request to:', url);
+      await fetch(url, { 
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      toast({
+        title: "Request sent",
+        description: "Email request has been sent"
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send email request"
+      });
+    } finally {
+      setIsPosting(false);
+    }
+  };
 
   const handleSave = async () => {
     try {
@@ -65,7 +115,6 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
         description: "Campaign updated successfully",
       });
 
-      // Refresh the campaigns data
       await queryClient.invalidateQueries({ queryKey: ['campaigns'] });
       setIsEditing(false);
     } catch (error) {
@@ -122,200 +171,51 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
     }
   };
 
-  const renderMetrics = () => (
-    <div className="flex items-center gap-4 text-sm text-gray-600">
-      <div className="flex items-center gap-1">
-        <span>2.1k likes</span>
-      </div>
-      <div className="flex items-center gap-1">
-        <span>32 comments</span>
-      </div>
-      <div className="flex items-center gap-1">
-        <span>12.3k views</span>
-      </div>
-    </div>
-  );
-  
+  const handleEditChange = (field: string, value: string) => {
+    setEditedCampaign(prev => ({ ...prev, [field]: value }));
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[80vh] overflow-y-auto">
-        <div className="grid grid-cols-2 gap-6 mb-6">
-          <div className="relative aspect-video">
-            <img
-              src={localCampaign.media_url}
-              alt={localCampaign.title}
-              className="w-full h-full object-cover rounded-lg"
+        <Tabs defaultValue="details" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="details">Campaign Details</TabsTrigger>
+            <TabsTrigger value="preview">Platform Preview</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="details">
+            <CampaignContent
+              campaign={campaign}
+              localCampaign={localCampaign}
+              editedCampaign={editedCampaign}
+              isEditing={isEditing}
+              isSaving={isSaving}
+              isPosting={isPosting}
+              isDeleting={isDeleting}
+              onEdit={() => setIsEditing(true)}
+              onSave={handleSave}
+              onCancel={handleCancel}
+              onEditCancel={() => {
+                setEditedCampaign(localCampaign);
+                setIsEditing(false);
+              }}
+              onEditChange={handleEditChange}
+              onPost={handleManualPost}
             />
-          </div>
-          
-          <div className="space-y-4">
-            {isEditing ? (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Title</Label>
-                  <Input
-                    id="title"
-                    value={editedCampaign.title}
-                    onChange={(e) => setEditedCampaign(prev => ({ ...prev, title: e.target.value }))}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={editedCampaign.description || ''}
-                    onChange={(e) => setEditedCampaign(prev => ({ ...prev, description: e.target.value }))}
-                    rows={3}
-                  />
-                </div>
+            
+            <CampaignMetrics
+              timeScale={timeScale}
+              setTimeScale={setTimeScale}
+              data={mockTimeData[timeScale]}
+            />
+          </TabsContent>
 
-                <div className="space-y-2">
-                  <Label htmlFor="target_audience">Target Audience</Label>
-                  <Select 
-                    value={editedCampaign.target_audience || ''} 
-                    onValueChange={(value) => setEditedCampaign(prev => ({ ...prev, target_audience: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select target audience" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="restaurants">Restaurant Owners</SelectItem>
-                      <SelectItem value="caterers">Catering Services</SelectItem>
-                      <SelectItem value="hotels">Hotels</SelectItem>
-                      <SelectItem value="event-planners">Event Planners</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="caption">Caption</Label>
-                  <Textarea
-                    id="caption"
-                    value={editedCampaign.caption || ''}
-                    onChange={(e) => setEditedCampaign(prev => ({ ...prev, caption: e.target.value }))}
-                    rows={2}
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="flex items-center gap-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    {isSaving ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setEditedCampaign(localCampaign);
-                      setIsEditing(false);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <h2 className="text-2xl font-bold">{campaign.title}</h2>
-                <p className="text-gray-600">{campaign.description}</p>
-                
-                <div className="space-y-3">
-                  <h3 className="font-semibold">Campaign Details</h3>
-                  <div className="bg-accent/5 p-3 rounded-lg space-y-2">
-                    <div className="flex items-center gap-2 text-accent">
-                      <CalendarDays className="h-4 w-4" />
-                      <span className="font-medium">Campaign Duration</span>
-                    </div>
-                    <p className="text-sm">
-                      Start Date: <span className="font-medium">{formatDate(campaign.start_date)}</span>
-                    </p>
-                    <p className="text-sm">
-                      End Date: <span className="font-medium">{formatDate(campaign.end_date)}</span>
-                    </p>
-                  </div>
-                  <p><span className="font-medium">Target Audience:</span> {campaign.target_audience}</p>
-                  <p><span className="font-medium">Platforms:</span> {campaign.platforms?.join(", ")}</p>
-                  
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsEditing(true)}
-                    className="mt-4"
-                  >
-                    Edit Campaign
-                  </Button>
-                </div>
-              </>
-            )}
-
-            <Button
-              variant="destructive"
-              className="w-full mt-4"
-              onClick={handleCancel}
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Cancelling..." : "Cancel Campaign"}
-            </Button>
-          </div>
-        </div>
-        
-        <div className="mt-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold">Performance Metrics</h3>
-            <div className="space-x-2">
-              <Button
-                variant={timeScale === "day" ? "default" : "outline"}
-                onClick={() => setTimeScale("day")}
-              >
-                1 Day
-              </Button>
-              <Button
-                variant={timeScale === "week" ? "default" : "outline"}
-                onClick={() => setTimeScale("week")}
-              >
-                1 Week
-              </Button>
-            </div>
-          </div>
-          
-          <div className="w-full h-[250px]">
-            <ResponsiveContainer>
-              <LineChart data={mockTimeData[timeScale]} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="views" stroke="#8884d8" />
-                <Line type="monotone" dataKey="likes" stroke="#82ca9d" />
-                <Line type="monotone" dataKey="comments" stroke="#ffc658" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+          <TabsContent value="preview" className="mt-4">
+            <PlatformPreview campaign={campaign} />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
 }
-
-const mockTimeData = {
-  day: [
-    { time: "00:00", views: 120, likes: 45, comments: 12 },
-    { time: "06:00", views: 240, likes: 90, comments: 24 },
-    { time: "12:00", views: 580, likes: 210, comments: 56 },
-    { time: "18:00", views: 890, likes: 320, comments: 89 },
-    { time: "23:59", views: 1200, likes: 450, comments: 120 },
-  ],
-  week: [
-    { time: "Mon", views: 1200, likes: 450, comments: 120 },
-    { time: "Tue", views: 2400, likes: 890, comments: 240 },
-    { time: "Wed", views: 5800, likes: 2100, comments: 560 },
-    { time: "Thu", views: 8900, likes: 3200, comments: 890 },
-    { time: "Fri", views: 12000, likes: 4500, comments: 1200 },
-    { time: "Sat", views: 15000, likes: 5600, comments: 1500 },
-    { time: "Sun", views: 18000, likes: 6700, comments: 1800 },
-  ],
-};
