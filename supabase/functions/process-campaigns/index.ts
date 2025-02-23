@@ -1,13 +1,12 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
-import { Resend } from 'npm:resend@2.0.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+const picaApiKey = Deno.env.get('PICA_SECRET_KEY');
 
 interface Campaign {
   id: string;
@@ -50,25 +49,39 @@ Deno.serve(async (req: Request) => {
 
     console.log('Campaign details:', campaign);
 
-    // Send email notification
+    // Send email using Pica Labs execute
     if (campaign.platforms.includes('email')) {
       try {
-        const emailResponse = await resend.emails.send({
-          from: 'Social Campaign Manager <onboarding@resend.dev>',
-          to: ['fluffyduck0222@gmail.com'], // Replace with actual recipient
-          subject: campaign.title,
-          html: `
-            <h1>${campaign.title}</h1>
-            <p>${campaign.description}</p>
-            ${campaign.media_url ? `<img src="${campaign.media_url}" alt="Campaign Media" style="max-width: 600px;" />` : ''}
-            <p>${campaign.caption}</p>
-            ${campaign.hashtags ? `<p>${campaign.hashtags.join(' ')}</p>` : ''}
-          `,
+        console.log('Sending email via Pica Labs execute');
+        
+        const response = await fetch('https://api.picakages.com/v1/execute', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${picaApiKey}`
+          },
+          body: JSON.stringify({
+            recipient: 'fluffyduck0222@gmail.com', // Replace with actual recipient
+            subject: campaign.title,
+            content: `
+              <h1>${campaign.title}</h1>
+              <p>${campaign.description}</p>
+              ${campaign.media_url ? `<img src="${campaign.media_url}" alt="Campaign Media" style="max-width: 600px;" />` : ''}
+              <p>${campaign.caption}</p>
+              ${campaign.hashtags ? `<p>${campaign.hashtags.join(' ')}</p>` : ''}
+            `,
+            type: 'email'
+          })
         });
 
-        console.log('Email sent successfully:', emailResponse);
+        const emailResult = await response.json();
+        console.log('Pica Labs execute response:', emailResult);
+
+        if (!response.ok) {
+          throw new Error(emailResult.message || 'Failed to send email via Pica Labs');
+        }
       } catch (emailError) {
-        console.error('Error sending email:', emailError);
+        console.error('Error sending email via Pica Labs:', emailError);
         throw emailError;
       }
     }
