@@ -1,5 +1,8 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
+import { Pica } from 'npm:@picahq/ai'
+import { generateText } from 'npm:ai'
+import { openai } from 'npm:@ai-sdk/openai'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,6 +18,30 @@ interface Campaign {
   end_date: string;
   media_url: string;
   caption: string;
+}
+
+async function executeEmailCampaign(campaign: Campaign) {
+  const pica = new Pica(Deno.env.get('PICA_SECRET_KEY') ?? '');
+  const system = await pica.generateSystemPrompt();
+
+  // Construct email message using campaign details
+  const message = `send email using gmail with:
+    subject: ${campaign.title}
+    content: ${campaign.description}
+    media: ${campaign.media_url || 'no media'}
+  `;
+
+  console.log('Generating email with Pica:', message);
+
+  const { text } = await generateText({
+    model: openai('gpt-4'),
+    system,
+    prompt: message,
+    tools: { ...pica.oneTool },
+    maxSteps: 10,
+  });
+
+  return text;
 }
 
 Deno.serve(async (req) => {
@@ -45,28 +72,34 @@ Deno.serve(async (req) => {
 
     console.log(`Found ${campaigns?.length ?? 0} campaigns to process`)
 
+    const processedEmails = [];
+    const otherPlatforms = [];
+
     // Process each campaign
     for (const campaign of campaigns ?? []) {
       console.log(`Processing campaign: ${campaign.title}`)
       
-      // Log the campaign details for testing
-      console.log('Campaign details:', {
-        id: campaign.id,
-        title: campaign.title,
-        platforms: campaign.platforms,
-        startDate: campaign.start_date,
-        endDate: campaign.end_date
-      })
-
-      // Here we'll just log the platforms that would be triggered
-      // Replace these logs with actual integration calls when ready
       if (campaign.platforms) {
         for (const platform of campaign.platforms) {
-          console.log(`Would trigger ${platform} integration for campaign: ${campaign.title}`)
-          // Add actual integration calls here when ready
-          // Example:
-          // if (platform === 'email') await sendEmailCampaign(campaign)
-          // if (platform === 'instagram') await postToInstagram(campaign)
+          if (platform === 'email') {
+            try {
+              console.log(`Processing email campaign: ${campaign.title}`);
+              const result = await executeEmailCampaign(campaign);
+              processedEmails.push({
+                campaign: campaign.title,
+                result
+              });
+            } catch (err) {
+              console.error(`Error processing email campaign ${campaign.title}:`, err);
+              processedEmails.push({
+                campaign: campaign.title,
+                error: err.message
+              });
+            }
+          } else {
+            // Log other platforms for future implementation
+            otherPlatforms.push(`${platform} for campaign: ${campaign.title}`);
+          }
         }
       }
     }
@@ -74,6 +107,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         message: 'Campaign processing completed',
+        processedEmails,
+        otherPlatforms,
         processed: campaigns?.length ?? 0
       }),
       { 
