@@ -60,7 +60,7 @@ Title: ${campaign.title}
 Description: ${campaign.description || ''}
 Target Audience: ${campaign.target_audience || ''}
 Caption: ${campaign.caption || ''}
-Image URL: ${campaign.media_url || ''}
+Image: ${campaign.id}
 ${campaign.hashtags?.length ? 'Hashtags: ' + campaign.hashtags.join(' ') : ''}`.trim();
 
       const url = `https://53b2-12-206-80-188.ngrok-free.app/generate?message=${encodeURIComponent(`Send email to fluffyduck0222@gmail.com via gmail with content "${content}"`)}`;
