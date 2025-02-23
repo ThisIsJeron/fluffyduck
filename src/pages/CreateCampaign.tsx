@@ -126,7 +126,7 @@ const CreateCampaign = () => {
         }))
       });
 
-      const response = await fetch('https://7a22-12-206-80-188.ngrok-free.app/api/generate-campaign', {
+      const response = await fetch('/api/generate-campaign', {
         method: 'POST',
         body: formData
       });
