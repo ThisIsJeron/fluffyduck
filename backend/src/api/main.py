@@ -42,8 +42,8 @@ class CampaignRequest(BaseModel):
     cadence: str
     platforms: List[str]
 
-class ImageEnhancementResponse(BaseModel):
-    enhanced_images: List[str]
+class ImageGenerationResponse(BaseModel):
+    generated_images: List[str]
     prompt: str
     style_used: str
 
@@ -168,7 +168,7 @@ async def enhance_restaurant_photo(
             raise ValueError(f"Invalid response format from Fal.ai: {result}")
 
         return {
-            'enhanced_images': [img['url'] for img in result['images']],
+            'generated_images': [img['url'] for img in result['images']],  # Changed back to generated_images
             'prompt': prompt,
             'style_used': platform_style['style']
         }
@@ -180,8 +180,8 @@ async def enhance_restaurant_photo(
             detail=f"Error enhancing image: {str(e)}"
         )
 
-@app.post("/api/enhance-campaign", response_model=ImageEnhancementResponse)
-async def enhance_campaign(
+@app.post("/api/generate-campaign", response_model=ImageGenerationResponse)
+async def generate_campaign(
     campaign: str = Form(...),
     reference_image: UploadFile = File(...)
 ):
@@ -221,7 +221,7 @@ async def enhance_campaign(
             detail="Invalid JSON format in campaign data"
         )
     except Exception as e:
-        print(f"Error in enhance_campaign: {str(e)}")
+        print(f"Error in generate_campaign: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error processing campaign: {str(e)}"
