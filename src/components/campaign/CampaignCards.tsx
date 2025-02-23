@@ -48,8 +48,8 @@ export const CampaignCards = ({ campaigns, formData }: CampaignCardsProps) => {
         description: "Campaign selected successfully!",
       });
 
-      // Navigate to campaign completion page with the campaign ID
-      navigate(`/campaign-completion?id=${data.id}`);
+      // Navigate to campaign completion page with the campaign ID as a URL parameter
+      navigate(`/campaign-completion/${data.id}`);
 
     } catch (error) {
       console.error('Error selecting campaign:', error);
