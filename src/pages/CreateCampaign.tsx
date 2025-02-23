@@ -26,80 +26,96 @@ const CreateCampaign = () => {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
 
+  const generateCampaignCards = async () => {
+    // Get public URLs for the sample campaign images
+    const { data: { publicUrl: url1 } } = supabase
+      .storage
+      .from('campaign_media')
+      .getPublicUrl('1.jpeg');
+    
+    const { data: { publicUrl: url2 } } = supabase
+      .storage
+      .from('campaign_media')
+      .getPublicUrl('2.jpeg');
+    
+    const { data: { publicUrl: url3 } } = supabase
+      .storage
+      .from('campaign_media')
+      .getPublicUrl('3.jpeg');
+
+    return [
+      {
+        id: 1,
+        title: "Modern & Bold",
+        description: "A contemporary approach that captures attention with bold visuals and compelling messaging.",
+        image: url1
+      },
+      {
+        id: 2,
+        title: "Classic & Elegant",
+        description: "Timeless design that emphasizes sophistication and brand heritage.",
+        image: url2
+      },
+      {
+        id: 3,
+        title: "Creative & Playful",
+        description: "An innovative take that sparks engagement through creative storytelling.",
+        image: url3
+      }
+    ];
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
+      // Generate campaign cards regardless of upload success
+      const campaignCards = await generateCampaignCards();
+      setGeneratedCampaigns(campaignCards);
+
       if (uploadedFiles.length === 0) {
         toast({
-          title: "Error",
-          description: "Please upload an image",
-          variant: "destructive",
+          title: "Warning",
+          description: "No image uploaded, but here are some sample campaigns!",
         });
         return;
       }
 
-      // Upload the reference image to Supabase storage
-      const file = uploadedFiles[0];
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('campaign_media')
-        .upload(fileName, file);
+      // Try to upload the reference image to Supabase storage
+      try {
+        const file = uploadedFiles[0];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('campaign_media')
+          .upload(fileName, file);
 
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      // Get public URLs for the sample campaign images
-      const { data: { publicUrl: url1 } } = supabase
-        .storage
-        .from('campaign_media')
-        .getPublicUrl('1.jpeg');
-      
-      const { data: { publicUrl: url2 } } = supabase
-        .storage
-        .from('campaign_media')
-        .getPublicUrl('2.jpeg');
-      
-      const { data: { publicUrl: url3 } } = supabase
-        .storage
-        .from('campaign_media')
-        .getPublicUrl('3.jpeg');
-
-      const campaignCards: CampaignCard[] = [
-        {
-          id: 1,
-          title: "Modern & Bold",
-          description: "A contemporary approach that captures attention with bold visuals and compelling messaging.",
-          image: url1
-        },
-        {
-          id: 2,
-          title: "Classic & Elegant",
-          description: "Timeless design that emphasizes sophistication and brand heritage.",
-          image: url2
-        },
-        {
-          id: 3,
-          title: "Creative & Playful",
-          description: "An innovative take that sparks engagement through creative storytelling.",
-          image: url3
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast({
+            title: "Warning",
+            description: "Image upload failed, but here are some sample campaigns!",
+          });
+          return;
         }
-      ];
 
-      setGeneratedCampaigns(campaignCards);
-      toast({
-        title: "Success",
-        description: "Campaign variations generated successfully!",
-      });
+        toast({
+          title: "Success",
+          description: "Campaign variations generated successfully!",
+        });
+      } catch (uploadError) {
+        console.error('Upload error:', uploadError);
+        toast({
+          title: "Warning",
+          description: "Image upload failed, but here are some sample campaigns!",
+        });
+      }
 
     } catch (error) {
       console.error('Error:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate campaign",
-        variant: "destructive",
+        title: "Note",
+        description: "Something went wrong, but here are some sample campaigns!",
       });
     } finally {
       setIsLoading(false);
