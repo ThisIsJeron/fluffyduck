@@ -1,10 +1,9 @@
-
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Campaign } from "@/types/campaign";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/ui/use-toast";
@@ -44,6 +43,7 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
   const [editedCampaign, setEditedCampaign] = useState<Campaign>(campaign);
   const [localCampaign, setLocalCampaign] = useState<Campaign>(campaign);
 
@@ -57,6 +57,43 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
   useEffect(() => {
     setLocalCampaign(campaign);
   }, [campaign]);
+
+  const handleManualPost = async () => {
+    try {
+      setIsPosting(true);
+      console.log('Triggering manual post for campaign:', campaign.id);
+      
+      const { data, error } = await supabase.functions.invoke('process-campaigns', {
+        body: { campaignId: campaign.id }
+      });
+
+      if (error) {
+        console.error('Error posting campaign:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to post campaign"
+        });
+        return;
+      }
+
+      console.log('Campaign posted successfully:', data);
+      toast({
+        title: "Success",
+        description: "Campaign posted successfully"
+      });
+
+    } catch (error) {
+      console.error('Unexpected error during posting:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred"
+      });
+    } finally {
+      setIsPosting(false);
+    }
+  };
 
   const handleSave = async () => {
     try {
@@ -197,13 +234,21 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
                       <p><span className="font-medium">Target Audience:</span> {campaign.target_audience}</p>
                       <p><span className="font-medium">Platforms:</span> {campaign.platforms?.join(", ")}</p>
                       
-                      <Button
-                        variant="outline"
-                        onClick={() => setIsEditing(true)}
-                        className="mt-4"
-                      >
-                        Edit Campaign
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setIsEditing(true)}
+                        >
+                          Edit Campaign
+                        </Button>
+                        <Button
+                          onClick={handleManualPost}
+                          disabled={isPosting}
+                        >
+                          <Send className="h-4 w-4" />
+                          {isPosting ? "Posting..." : "Manual Post"}
+                        </Button>
+                      </div>
                     </div>
                   </>
                 )}
