@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -28,7 +27,6 @@ const CreateCampaign = () => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const files = Array.from(e.target.files).map(file => {
-        // Validate file type
         const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (!validImageTypes.includes(file.type)) {
           toast({
@@ -60,9 +58,27 @@ const CreateCampaign = () => {
     });
   };
 
+  const checkServerAvailability = async () => {
+    try {
+      const response = await fetch('/api/health');
+      if (!response.ok) {
+        throw new Error('Backend server is not responding properly');
+      }
+      return true;
+    } catch (error) {
+      console.error('Server availability check failed:', error);
+      return false;
+    }
+  };
+
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
+      const isServerAvailable = await checkServerAvailability();
+      if (!isServerAvailable) {
+        throw new Error('Backend server is not available. Please try again later or contact support if the issue persists.');
+      }
+
       if (!campaignName || !description || !targetAudience || !platforms) {
         toast({
           title: "Error",
@@ -93,10 +109,8 @@ const CreateCampaign = () => {
       
       formData.append('campaign', JSON.stringify(campaignData));
       
-      // Get the first uploaded file
       const fileToUpload = uploadedFiles[0];
 
-      // Create a new File object with the correct type and name
       const imageFile = new File(
         [fileToUpload],
         fileToUpload.name,
@@ -106,7 +120,6 @@ const CreateCampaign = () => {
         }
       );
 
-      // Append the file with the correct field name
       formData.append('reference_image', imageFile);
 
       console.log('Sending data to backend:', {
@@ -125,15 +138,12 @@ const CreateCampaign = () => {
         body: formData
       });
 
-      // Check if response is ok before trying to parse JSON
       if (!response.ok) {
-        // Try to get error details from response
         let errorMessage = 'Failed to generate images';
         try {
           const errorData = await response.text();
           console.error('Error response:', errorData);
           
-          // Try to parse as JSON if possible
           try {
             const jsonError = JSON.parse(errorData);
             if (jsonError.detail) {
@@ -142,21 +152,23 @@ const CreateCampaign = () => {
                 : jsonError.detail;
             }
           } catch (e) {
-            // If not JSON, use the raw text
             errorMessage = errorData || errorMessage;
           }
         } catch (e) {
           console.error('Error reading response:', e);
+          if (!window.navigator.onLine) {
+            errorMessage = 'You are currently offline. Please check your internet connection.';
+          } else if (response.status === 503 || response.status === 502 || response.status === 504) {
+            errorMessage = 'The server is temporarily unavailable. Please try again in a few minutes.';
+          }
         }
         
         throw new Error(errorMessage);
       }
 
-      // Get response text first
       const responseText = await response.text();
       console.log('Raw response:', responseText);
 
-      // Try to parse as JSON
       if (!responseText) {
         throw new Error('Empty response from server');
       }
@@ -342,4 +354,3 @@ const CreateCampaign = () => {
 };
 
 export default CreateCampaign;
-
