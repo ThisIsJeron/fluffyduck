@@ -1,14 +1,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { MessageCircle, Heart, Eye } from "lucide-react";
+import { MessageCircle, Heart, Eye, CheckCircle } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { Campaign } from "@/types/campaign";
 import { CampaignDetailsDialog } from "@/components/campaign/CampaignDetailsDialog";
 import { useState } from "react";
-import { format, isBefore, isAfter, startOfToday } from "date-fns";
+import { format, isBefore, isAfter, startOfToday, isWithinInterval } from "date-fns";
 import { useLocation } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 
 const Dashboard = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
@@ -39,6 +40,14 @@ const Dashboard = () => {
   });
 
   const today = startOfToday();
+
+  const isActiveCampaign = (campaign: Campaign) => {
+    if (!campaign.start_date || !campaign.end_date) return false;
+    return isWithinInterval(today, {
+      start: campaign.start_date,
+      end: campaign.end_date
+    });
+  };
 
   const filteredCampaigns = campaigns?.filter(campaign => {
     if (!campaign.end_date) return false;
@@ -73,36 +82,48 @@ const Dashboard = () => {
     setSelectedCampaign(null);
   };
 
-  const CampaignCard = ({ campaign }: { campaign: Campaign }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-      onClick={() => setSelectedCampaign(campaign)}
-    >
-      <div className="aspect-video relative overflow-hidden">
-        <img
-          src={campaign.media_url}
-          alt={campaign.title}
-          className="w-full h-full object-cover"
-        />
-      </div>
-      <div className="p-4">
-        <h3 className="font-medium mb-2">{campaign.title}</h3>
-        <div className="text-sm text-gray-500 mb-2">
-          {campaign.end_date && (
-            <p>
-              {isPastRoute 
-                ? `Ended ${format(campaign.end_date, 'MMM dd, yyyy')}`
-                : `Ends ${format(campaign.end_date, 'MMM dd, yyyy')}`
-              }
-            </p>
+  const CampaignCard = ({ campaign }: { campaign: Campaign }) => {
+    const isActive = isActiveCampaign(campaign);
+    
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+        onClick={() => setSelectedCampaign(campaign)}
+      >
+        <div className="aspect-video relative overflow-hidden">
+          <img
+            src={campaign.media_url}
+            alt={campaign.title}
+            className="w-full h-full object-cover"
+          />
+          {isActive && (
+            <div className="absolute top-2 right-2">
+              <Badge className="bg-green-500 text-white flex items-center gap-1">
+                <CheckCircle className="h-3 w-3" />
+                Active
+              </Badge>
+            </div>
           )}
         </div>
-        {renderMetrics(campaign)}
-      </div>
-    </motion.div>
-  );
+        <div className="p-4">
+          <h3 className="font-medium mb-2">{campaign.title}</h3>
+          <div className="text-sm text-gray-500 mb-2">
+            {campaign.end_date && (
+              <p>
+                {isPastRoute 
+                  ? `Ended ${format(campaign.end_date, 'MMM dd, yyyy')}`
+                  : `Ends ${format(campaign.end_date, 'MMM dd, yyyy')}`
+                }
+              </p>
+            )}
+          </div>
+          {renderMetrics(campaign)}
+        </div>
+      </motion.div>
+    );
+  };
 
   return (
     <div className="flex min-h-screen bg-secondary">
