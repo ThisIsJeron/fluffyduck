@@ -10,10 +10,9 @@ interface MediaUploadProps {
 
 const MediaUpload = ({ uploadedFiles, onFileUpload, onRemoveFile }: MediaUploadProps) => {
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm">
-      <h2 className="text-xl font-semibold mb-4">Campaign Media</h2>
-      
-      <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
+    <div className="bg-white p-6 rounded-xl shadow-sm h-fit">
+
+      <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center h-60 flex items-center justify-center">
         <input
           type="file"
           id="media-upload"
@@ -37,7 +36,7 @@ const MediaUpload = ({ uploadedFiles, onFileUpload, onRemoveFile }: MediaUploadP
         </label>
       </div>
 
-      {uploadedFiles.length > 0 && (
+      {uploadedFiles && uploadedFiles.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6">
           {uploadedFiles.map((file, index) => (
             <div key={index} className="relative group">

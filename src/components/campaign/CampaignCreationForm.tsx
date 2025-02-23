@@ -111,7 +111,7 @@ const CampaignCreationForm = ({
       </div>
 
       {campaigns.length > 0 && (
-        <GeneratedCampaigns 
+        <GeneratedCampaigns
           campaigns={campaigns}
           onSelect={onSelect}
         />

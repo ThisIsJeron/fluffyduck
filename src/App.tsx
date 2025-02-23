@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import Create from "./pages/Create";
 import Dashboard from "./pages/Dashboard";
 import CreateCampaign from "./pages/CreateCampaign";
 import CampaignCompletion from "./pages/CampaignCompletion";
@@ -22,6 +23,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/create" element={<Create />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/past" element={<Dashboard />} />
           <Route path="/create-campaign" element={<CreateCampaign />} />

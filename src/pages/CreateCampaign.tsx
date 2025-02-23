@@ -14,8 +14,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "./ui/textarea";
-import { useToast } from "./ui/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 import {
   Select,
@@ -23,10 +23,11 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
+} from "@/components/ui/select";
 import { useState } from "react";
-import { ImageUpload } from "./ImageUpload";
+import MediaUpload from "@/components/campaign/MediaUpload";
 
+type Step = "input" | "options" | "congrats";
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
 
 const formSchema = z.object({
@@ -38,6 +39,7 @@ const formSchema = z.object({
 });
 
 const CreateCampaign = () => {
+  const currentStep: Step = "input"
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -88,11 +90,11 @@ const CreateCampaign = () => {
       });
 
       console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('Response data:', data);
 
@@ -222,9 +224,18 @@ const CreateCampaign = () => {
 
           <div className="space-y-4">
             <FormLabel>Upload Image</FormLabel>
-            <ImageUpload
-              value={uploadedFiles.map(file => URL.createObjectURL(file))}
-              onChange={(files) => setUploadedFiles(files)}
+            <MediaUpload
+              uploadedFiles={uploadedFiles.map(file => ({
+                preview: URL.createObjectURL(file),
+                lastModified: file.lastModified,
+                name: file.name,
+                webkitRelativePath: file.webkitRelativePath,
+                size: file.size
+              }))}
+              onFileUpload={(e) => {
+                const files = Array.from(e.target.files || []);
+                setUploadedFiles(files);
+              }} onChange={(files) => setUploadedFiles(files)}
             />
           </div>
 
@@ -236,7 +247,7 @@ const CreateCampaign = () => {
       </Form>
 
       {/* Display generated images */}
-      {generatedImages.length > 0 && (
+      {generatedImages && generatedImages.length > 0 && (
         <div className="mt-8">
           <h2 className="text-xl font-bold mb-4">Generated Images</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
