@@ -167,14 +167,13 @@ const CreateCampaign = () => {
         try {
           const base64data = reader.result as string;
           
-          // Save to Supabase
+          // Save to Supabase selected_campaigns table
           const { data, error } = await supabase
-            .from('campaigns')
+            .from('selected_campaigns')  // Changed from 'campaigns' to 'selected_campaigns'
             .insert({
               media_url: base64data,
               caption: selectedCampaign.caption,
               hashtags: selectedCampaign.hashtags,
-              selected: true,
               title: campaignName,
               description: description,
               cadence: cadence,
@@ -182,6 +181,7 @@ const CreateCampaign = () => {
               platforms: [platforms],
               start_date: startDate?.toISOString(),
               end_date: endDate?.toISOString(),
+              metrics: { likes: 0, views: 0, comments: 0 } // Add default metrics
             })
             .select()
             .single();
@@ -191,6 +191,8 @@ const CreateCampaign = () => {
           if (!data) {
             throw new Error('Campaign was not created');
           }
+
+          console.log("Created selected campaign:", data);
 
           // Navigate to completion page with the correct ID
           navigate(`/campaign-completion/${data.id}`);
