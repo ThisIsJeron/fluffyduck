@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Bot, Briefcase, ChartBar, Mail, Phone, ArrowRight } from "lucide-react";
@@ -48,7 +49,7 @@ const Index = () => {
             className="max-w-3xl mx-auto"
           >
             <h1 className="text-4xl md:text-6xl font-bold text-primary mb-6">
-              FluffyDuck: Your AI-Powered Assistant for Local Restaurant Marketing & Reservations
+              FluffyDuck: Your AI Agent for Local Restaurant Marketing & Reservations
             </h1>
             <p className="text-xl text-gray-600 mb-8">
               Automate customer interactions, streamline catering operations, and grow your business effortlessly.
