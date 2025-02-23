@@ -27,7 +27,7 @@ import {
 import { useState } from "react";
 import { ImageUpload } from "./ImageUpload";
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://fluffyduck-api.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
 
 const CreateCampaign = () => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
