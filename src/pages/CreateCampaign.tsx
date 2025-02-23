@@ -9,6 +9,7 @@ import { CampaignCards } from "@/components/campaign/CampaignCards";
 import type { z } from "zod";
 import { formSchema } from "@/components/campaign/CampaignForm";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
 
@@ -60,24 +61,43 @@ const CreateCampaign = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
+      const result = await response.json();
+      console.log('API Response:', result); // Debug log
+      
+      // Get public URLs for the generated images
+      const { data: { publicUrl: url1 } } = supabase
+        .storage
+        .from('campaign_media')
+        .getPublicUrl('1.jpeg');
+      
+      const { data: { publicUrl: url2 } } = supabase
+        .storage
+        .from('campaign_media')
+        .getPublicUrl('2.jpeg');
+      
+      const { data: { publicUrl: url3 } } = supabase
+        .storage
+        .from('campaign_media')
+        .getPublicUrl('3.jpeg');
+
       const campaignCards: CampaignCard[] = [
         {
           id: 1,
           title: "Modern & Bold",
           description: "A contemporary approach that captures attention with bold visuals and compelling messaging.",
-          image: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/campaign_media/1.jpeg`
+          image: url1
         },
         {
           id: 2,
           title: "Classic & Elegant",
           description: "Timeless design that emphasizes sophistication and brand heritage.",
-          image: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/campaign_media/2.jpeg`
+          image: url2
         },
         {
           id: 3,
           title: "Creative & Playful",
           description: "An innovative take that sparks engagement through creative storytelling.",
-          image: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/campaign_media/3.jpeg`
+          image: url3
         }
       ];
 
