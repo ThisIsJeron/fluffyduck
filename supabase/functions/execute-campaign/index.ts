@@ -10,29 +10,41 @@ const corsHeaders = {
 };
 
 async function executePicaCommand(title: string, caption: string) {
-  const PICA_API_KEY = Deno.env.get("PICA_SECRET_KEY");
-  if (!PICA_API_KEY) {
-    throw new Error("PICA_SECRET_KEY is not set");
+  try {
+    const PICA_API_KEY = Deno.env.get("PICA_SECRET_KEY");
+    console.log('Checking for PICA_SECRET_KEY:', PICA_API_KEY ? 'Present' : 'Missing');
+    
+    if (!PICA_API_KEY) {
+      throw new Error("PICA_SECRET_KEY is not set in environment variables");
+    }
+
+    console.log('Making request to Pica API...');
+    const response = await fetch("https://api.picahq.com/v1/execute", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${PICA_API_KEY}`
+      },
+      body: JSON.stringify({
+        command: `send email to fluffyduck0222@gmail.com with subject "${title}" and content "${caption}" using gmail`
+      })
+    });
+
+    console.log('Pica API response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Pica API error response:', errorText);
+      throw new Error(`Pica API error: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log('Pica API success response:', result);
+    return result;
+  } catch (error) {
+    console.error('Error in executePicaCommand:', error);
+    throw error;
   }
-
-  const response = await fetch("https://api.picahq.com/v1/execute", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${PICA_API_KEY}`
-    },
-    body: JSON.stringify({
-      command: `send email to fluffyduck0222@gmail.com with subject "${title}" and content "${caption}" using gmail`
-    })
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Pica API error:', errorText);
-    throw new Error(`Pica API error: ${response.status}`);
-  }
-
-  return await response.json();
 }
 
 serve(async (req) => {
@@ -45,8 +57,9 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Request received:', req.method);
     const { campaign } = await req.json();
-    console.log('Received campaign:', campaign);
+    console.log('Received campaign data:', campaign);
 
     if (!campaign || !campaign.title || !campaign.caption) {
       throw new Error('Missing required campaign data');
@@ -55,7 +68,6 @@ serve(async (req) => {
     // Execute the Pica command
     console.log('Executing Pica command for campaign:', campaign.title);
     const result = await executePicaCommand(campaign.title, campaign.caption);
-    console.log('Pica execution result:', result);
 
     return new Response(
       JSON.stringify({ 
@@ -71,11 +83,14 @@ serve(async (req) => {
       }
     );
   } catch (error: any) {
-    console.error('Error in handler:', error);
+    console.error('Error in request handler:', error);
+    
+    // Send a more detailed error response
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'An unexpected error occurred'
+        error: error.message,
+        details: error.stack
       }),
       { 
         status: 500,
