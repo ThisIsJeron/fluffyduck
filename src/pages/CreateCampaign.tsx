@@ -26,11 +26,24 @@ const CreateCampaign = () => {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files).map(file => ({
-        ...file,
-        preview: URL.createObjectURL(file)
-      }));
-      setUploadedFiles(prev => [...prev, ...files]);
+      const files = Array.from(e.target.files).map(file => {
+        if (!file.type.startsWith('image/')) {
+          toast({
+            title: "Error",
+            description: "Please upload only image files",
+            variant: "destructive",
+          });
+          return null;
+        }
+        return {
+          ...file,
+          preview: URL.createObjectURL(file)
+        };
+      }).filter(Boolean) as UploadedFile[];
+
+      if (files.length > 0) {
+        setUploadedFiles(prev => [...prev, ...files]);
+      }
     }
   };
 
@@ -77,10 +90,16 @@ const CreateCampaign = () => {
       formData.append('campaign', JSON.stringify(campaignData));
       
       const file = uploadedFiles[0];
-      const imageFile = new File([file], file.name, { type: file.type });
+      
+      const imageBlob = await fetch(file.preview).then(r => r.blob());
+      const imageFile = new File([imageBlob], file.name, { type: file.type });
       formData.append('reference_image', imageFile);
 
-      console.log('Sending data to backend:', campaignData);
+      console.log('Sending data to backend:', {
+        campaignData,
+        fileType: imageFile.type,
+        fileName: imageFile.name
+      });
 
       const response = await fetch('https://7a22-12-206-80-188.ngrok-free.app/api/generate-campaign', {
         method: 'POST',

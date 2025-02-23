@@ -18,7 +18,7 @@ const MediaUpload = ({ uploadedFiles, onFileUpload, onRemoveFile }: MediaUploadP
           type="file"
           id="media-upload"
           multiple
-          accept="image/*"
+          accept="image/jpeg,image/png,image/gif,image/webp"
           className="hidden"
           onChange={onFileUpload}
         />
@@ -32,7 +32,7 @@ const MediaUpload = ({ uploadedFiles, onFileUpload, onRemoveFile }: MediaUploadP
             <span className="text-accent font-medium">browse</span>
           </span>
           <span className="text-sm text-gray-400 mt-1">
-            Support for images only
+            Supports JPG, PNG, GIF, WEBP
           </span>
         </label>
       </div>
