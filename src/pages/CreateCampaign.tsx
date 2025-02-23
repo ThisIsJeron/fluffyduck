@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -35,9 +36,14 @@ const CreateCampaign = () => {
           });
           return null;
         }
+
+        // Create a direct blob copy of the file
+        const blob = file.slice(0, file.size, file.type);
+        const newFile = new File([blob], file.name, { type: file.type });
+        
         return {
-          ...file,
-          preview: URL.createObjectURL(file)
+          ...newFile,
+          preview: URL.createObjectURL(newFile)
         };
       }).filter(Boolean) as UploadedFile[];
 
@@ -91,14 +97,14 @@ const CreateCampaign = () => {
       
       const file = uploadedFiles[0];
       
-      const imageBlob = await fetch(file.preview).then(r => r.blob());
-      const imageFile = new File([imageBlob], file.name, { type: file.type });
-      formData.append('reference_image', imageFile);
+      // Directly use the file object since we already created it properly during upload
+      formData.append('reference_image', file);
 
       console.log('Sending data to backend:', {
         campaignData,
-        fileType: imageFile.type,
-        fileName: imageFile.name
+        fileType: file.type,
+        fileName: file.name,
+        fileSize: file.size
       });
 
       const response = await fetch('https://7a22-12-206-80-188.ngrok-free.app/api/generate-campaign', {
