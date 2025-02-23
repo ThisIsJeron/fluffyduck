@@ -64,7 +64,7 @@ Caption: ${campaign.caption || ''}
 ${campaign.hashtags?.length ? 'Hashtags: ' + campaign.hashtags.join(' ') : ''}`.trim();
 
       // Make a direct GET request to the provided URL
-      const url = `https://4b1d-12-206-80-188.ngrok-free.app/generate?message=${encodeURIComponent(`Send email to fluffyduck0222@gmail.com via gmail with content "${content}"`)}`;
+      const url = `https://53b2-12-206-80-188.ngrok-free.app/generate?message=${encodeURIComponent(`Send email to fluffyduck0222@gmail.com via gmail with content "${content}"`)}`;
       
       console.log('Making GET request to:', url);
       const response = await fetch(url);
