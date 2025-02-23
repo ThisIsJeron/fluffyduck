@@ -30,30 +30,50 @@ export function CampaignActions({ campaign, onEdit, onPost, isPosting }: Campaig
       console.log('Sending GET request to:', url);
       
       const response = await fetch(url);
+      const responseText = await response.text();
       
-      // Since we don't know if the response will always be JSON,
-      // let's consider any 2xx status code as success
+      console.log('Response status:', response.status);
+      console.log('Response body:', responseText);
+      
       if (response.status >= 200 && response.status < 300) {
-        console.log('Request successful:', response.status);
+        console.log('Request successful');
         
         toast({
           title: "Success",
           description: "Campaign posted successfully"
         });
 
-        // Call the onPost callback to update the UI
         if (onPost) onPost();
       } else {
-        const errorText = await response.text();
-        console.error('Request failed:', response.status, errorText);
-        throw new Error(`Request failed with status ${response.status}`);
+        // Try to parse the error response as JSON
+        let errorMessage = "Unknown error occurred";
+        try {
+          const errorJson = JSON.parse(responseText);
+          errorMessage = errorJson.error || errorJson.message || errorJson.detail || JSON.stringify(errorJson);
+        } catch {
+          // If not JSON, use the raw text
+          errorMessage = responseText;
+        }
+
+        console.error('Request failed:', {
+          status: response.status,
+          error: errorMessage
+        });
+
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: `Failed to post campaign: ${errorMessage}`
+        });
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Unexpected error during posting:', error);
+      
       toast({
         variant: "destructive",
         title: "Error",
-        description: "An unexpected error occurred while posting the campaign"
+        description: `Failed to post campaign: ${errorMessage}`
       });
     }
   };
