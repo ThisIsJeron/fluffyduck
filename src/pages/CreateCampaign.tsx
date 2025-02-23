@@ -28,21 +28,27 @@ const CreateCampaign = () => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const files = Array.from(e.target.files).map(file => {
-        if (!file.type.startsWith('image/')) {
+        // Validate file type
+        const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!validImageTypes.includes(file.type)) {
           toast({
             title: "Error",
-            description: "Please upload only image files",
+            description: "Please upload only JPEG, PNG, GIF, or WEBP images",
             variant: "destructive",
           });
           return null;
         }
 
-        // Store the original File object
-        const newFile = new File([file], file.name, { type: file.type });
+        // Create a blob from the file
+        const blob = file.slice(0, file.size, file.type);
+        const newFile = new File([blob], file.name, {
+          type: file.type,
+          lastModified: new Date().getTime()
+        });
         
         return {
           ...newFile,
-          preview: URL.createObjectURL(file)
+          preview: URL.createObjectURL(blob)
         };
       }).filter(Boolean) as UploadedFile[];
 
@@ -96,14 +102,15 @@ const CreateCampaign = () => {
       
       // Get the first uploaded file
       const fileToUpload = uploadedFiles[0];
+
+      // Create a new blob with the correct type
+      const blob = await fetch(fileToUpload.preview).then(r => r.blob());
       
-      // Create a new File object from the uploaded file's data
-      // This ensures we're sending a proper File object with the correct type
-      const imageFile = new File(
-        [fileToUpload],
-        fileToUpload.name,
-        { type: fileToUpload.type }
-      );
+      // Create a new file from the blob
+      const imageFile = new File([blob], fileToUpload.name, {
+        type: fileToUpload.type,
+        lastModified: new Date().getTime()
+      });
 
       // Append the file with the correct field name
       formData.append('reference_image', imageFile);
@@ -112,7 +119,11 @@ const CreateCampaign = () => {
         campaignData,
         fileType: imageFile.type,
         fileName: imageFile.name,
-        fileSize: imageFile.size
+        fileSize: imageFile.size,
+        formDataEntries: Array.from(formData.entries()).map(([key, value]) => ({
+          key,
+          type: value instanceof File ? value.type : typeof value
+        }))
       });
 
       const response = await fetch('https://7a22-12-206-80-188.ngrok-free.app/api/generate-campaign', {
