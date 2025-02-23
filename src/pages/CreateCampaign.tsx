@@ -76,54 +76,21 @@ const CreateCampaign = () => {
         end_date: endDate,
       });
 
-      // Generate campaign cards regardless of upload success
+      // Generate campaign variations
       const campaignCards = await generateCampaignCards();
       setGeneratedCampaigns(campaignCards);
 
-      if (uploadedFiles.length === 0) {
-        toast({
-          title: "Warning",
-          description: "No image uploaded, but here are some sample campaigns!",
-        });
-        return;
-      }
-
-      // Try to upload the reference image to Supabase storage
-      try {
-        const file = uploadedFiles[0];
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('campaign_media')
-          .upload(fileName, file);
-
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          toast({
-            title: "Warning",
-            description: "Image upload failed, but here are some sample campaigns!",
-          });
-          return;
-        }
-
-        toast({
-          title: "Success",
-          description: "Campaign variations generated successfully!",
-        });
-      } catch (uploadError) {
-        console.error('Upload error:', uploadError);
-        toast({
-          title: "Warning",
-          description: "Image upload failed, but here are some sample campaigns!",
-        });
-      }
+      toast({
+        title: "Success",
+        description: "Campaign variations generated successfully!",
+      });
 
     } catch (error) {
       console.error('Error:', error);
       toast({
-        title: "Note",
-        description: "Something went wrong, but here are some sample campaigns!",
+        title: "Error",
+        description: "Failed to generate campaign variations. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
