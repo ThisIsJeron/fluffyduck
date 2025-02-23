@@ -62,7 +62,6 @@ Target Audience: ${campaign.target_audience || ''}
 Caption: ${campaign.caption || ''}
 ${campaign.hashtags?.length ? 'Hashtags: ' + campaign.hashtags.join(' ') : ''}`.trim();
 
-      // Make a direct GET request to the provided URL with no-cors mode
       const url = `https://53b2-12-206-80-188.ngrok-free.app/generate?message=${encodeURIComponent(`Send email to fluffyduck0222@gmail.com via gmail with content "${content}"`)}`;
       
       console.log('Making GET request to:', url);
@@ -71,8 +70,6 @@ ${campaign.hashtags?.length ? 'Hashtags: ' + campaign.hashtags.join(' ') : ''}`.
         method: 'GET'
       });
       
-      // Since we're using no-cors, we can't read the response
-      // We'll assume success if no error was thrown
       toast({
         title: "Request sent",
         description: "Email request has been sent"

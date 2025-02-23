@@ -23,33 +23,25 @@ Target Audience: ${campaign.target_audience || ''}
 Caption: ${campaign.caption || ''}
 ${campaign.hashtags?.length ? 'Hashtags: ' + campaign.hashtags.join(' ') : ''}`.trim();
 
-      // Make a direct GET request to the provided URL
-      const url = `https://4b1d-12-206-80-188.ngrok-free.app/generate?message=${encodeURIComponent(`Send email to fluffyduck0222@gmail.com via gmail with content "${content}"`)}`;
+      const url = `https://53b2-12-206-80-188.ngrok-free.app/generate?message=${encodeURIComponent(`Send email to fluffyduck0222@gmail.com via gmail with content "${content}"`)}`;
       
       console.log('Making GET request to:', url);
-      const response = await fetch(url);
-      const responseText = await response.text();
-      console.log('Response:', responseText);
+      await fetch(url, { 
+        mode: 'no-cors',
+        method: 'GET'
+      });
 
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Email sent successfully"
-        });
-        if (onPost) onPost();
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to send email"
-        });
-      }
+      toast({
+        title: "Request sent",
+        description: "Email request has been sent"
+      });
+      if (onPost) onPost();
     } catch (error) {
       console.error('Error:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to send email"
+        description: "Failed to send email request"
       });
     }
   };
