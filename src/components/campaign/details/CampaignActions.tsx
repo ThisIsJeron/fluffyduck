@@ -1,6 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface CampaignActionsProps {
   onEdit: () => void;
@@ -9,6 +10,25 @@ interface CampaignActionsProps {
 }
 
 export function CampaignActions({ onEdit, onPost, isPosting }: CampaignActionsProps) {
+  const { toast } = useToast();
+
+  const handlePost = async () => {
+    try {
+      await onPost();
+      toast({
+        title: "Success",
+        description: "Campaign posted successfully via Pica"
+      });
+    } catch (error) {
+      console.error('Post error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to post campaign. Check console for details."
+      });
+    }
+  };
+
   return (
     <div className="flex gap-2">
       <Button
@@ -18,11 +38,11 @@ export function CampaignActions({ onEdit, onPost, isPosting }: CampaignActionsPr
         Edit Campaign
       </Button>
       <Button
-        onClick={onPost}
+        onClick={handlePost}
         disabled={isPosting}
       >
         <Send className="h-4 w-4" />
-        {isPosting ? "Posting..." : "Manual Post"}
+        {isPosting ? "Processing..." : "Manual Post"}
       </Button>
     </div>
   );

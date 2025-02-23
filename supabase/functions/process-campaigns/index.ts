@@ -8,16 +8,6 @@ const corsHeaders = {
 
 const picaApiKey = Deno.env.get('PICA_SECRET_KEY');
 
-interface Campaign {
-  id: string;
-  title: string;
-  description: string;
-  platforms: string[];
-  media_url: string;
-  caption: string;
-  hashtags: string[];
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -39,57 +29,37 @@ Deno.serve(async (req: Request) => {
       .eq('id', campaignId)
       .single();
 
-    if (campaignError) {
-      throw campaignError;
-    }
-
-    if (!campaign) {
-      throw new Error('Campaign not found');
+    if (campaignError || !campaign) {
+      throw new Error('Campaign not found or error fetching campaign');
     }
 
     console.log('Campaign details:', campaign);
+    console.log('Executing Pica command...');
 
-    // Send email using Pica Labs execute
-    if (campaign.platforms.includes('email')) {
-      try {
-        console.log('Sending email via Pica Labs execute');
-        
-        const response = await fetch('https://api.picakages.com/v1/execute', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${picaApiKey}`
-          },
-          body: JSON.stringify({
-            recipient: 'fluffyduck0222@gmail.com', // Replace with actual recipient
-            subject: campaign.title,
-            content: `
-              <h1>${campaign.title}</h1>
-              <p>${campaign.description}</p>
-              ${campaign.media_url ? `<img src="${campaign.media_url}" alt="Campaign Media" style="max-width: 600px;" />` : ''}
-              <p>${campaign.caption}</p>
-              ${campaign.hashtags ? `<p>${campaign.hashtags.join(' ')}</p>` : ''}
-            `,
-            type: 'email'
-          })
-        });
+    // Execute Pica command
+    const response = await fetch('https://api.picakages.com/v1/execute', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${picaApiKey}`
+      },
+      body: JSON.stringify({
+        command: `post the following message to email: ${campaign.caption} with subject ${campaign.title} to fluffyduck0222@gmail.com`,
+        type: 'natural_language'
+      })
+    });
 
-        const emailResult = await response.json();
-        console.log('Pica Labs execute response:', emailResult);
+    const result = await response.json();
+    console.log('Pica execution result:', result);
 
-        if (!response.ok) {
-          throw new Error(emailResult.message || 'Failed to send email via Pica Labs');
-        }
-      } catch (emailError) {
-        console.error('Error sending email via Pica Labs:', emailError);
-        throw emailError;
-      }
+    if (!response.ok) {
+      throw new Error(result.message || 'Failed to execute Pica command');
     }
 
     return new Response(
       JSON.stringify({ 
         message: 'Campaign processed successfully',
-        campaign: campaign.title
+        result: result
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -107,4 +77,4 @@ Deno.serve(async (req: Request) => {
       }
     )
   }
-})
+});
