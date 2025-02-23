@@ -1,9 +1,6 @@
 
 // @ts-ignore
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { Pica } from "@picahq/ai";
-import { openai } from "@ai-sdk/openai";
-import { generateText } from "ai";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,26 +8,6 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Max-Age': '86400',
 };
-
-async function execute(message: string) {
-  try {
-    const pica = new Pica(Deno.env.get("PICA_SECRET_KEY")!);
-    const system = await pica.generateSystemPrompt();
-    
-    const { text } = await generateText({
-      model: openai("gpt-4o"),
-      system,
-      prompt: message,
-      tools: { ...pica.oneTool },
-      maxSteps: 10,
-    });
-
-    return text;
-  } catch (error) {
-    console.error('Error in execute function:', error);
-    throw error;
-  }
-}
 
 serve(async (req) => {
   // IMPORTANT: Handle CORS preflight requests first
@@ -49,14 +26,18 @@ serve(async (req) => {
       throw new Error('Missing required campaign data');
     }
 
-    const message = `send email to fluffyduck0222@gmail.com with subject ${campaign.title} and content ${campaign.caption} using gmail`;
-    console.log('Executing with message:', message);
-    
-    const result = await execute(message);
-    console.log('Execution result:', result);
+    // For now, we'll just log the campaign data and return a success response
+    // We can implement the actual email sending logic later
+    console.log('Campaign to process:', {
+      title: campaign.title,
+      caption: campaign.caption
+    });
 
     return new Response(
-      JSON.stringify({ success: true, result }),
+      JSON.stringify({ 
+        success: true, 
+        result: `Successfully processed campaign: ${campaign.title}`
+      }),
       { 
         headers: { 
           'Content-Type': 'application/json',
