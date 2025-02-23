@@ -33,9 +33,9 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
       setIsDeleting(true);
       console.log('Starting campaign deletion:', campaign.id);
       
-      // Start a transaction for both deletions
-      const { data, error } = await supabase.rpc('delete_campaign', {
-        campaign_id: campaign.id
+      // Call the database function with proper typing
+      const { error } = await supabase.rpc('delete_campaign', {
+        campaign_id: campaign.id as string
       });
 
       if (error) {
