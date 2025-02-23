@@ -26,38 +26,39 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
     return format(new Date(date), "MMMM dd, yyyy");
   };
 
-  const handleDelete = async () => {
+  const handleCancel = async () => {
     if (isDeleting) return;
     
     try {
       setIsDeleting(true);
-      console.log('Starting campaign deletion:', campaign.id);
+      console.log('Moving campaign to past campaigns:', campaign.id);
       
-      // Call the database function with proper typing
-      const { error } = await supabase.rpc('delete_campaign', {
-        campaign_id: campaign.id as string
-      });
+      // Update the end date to current date to mark it as completed
+      const { error } = await supabase
+        .from('campaigns')
+        .update({ end_date: new Date().toISOString() })
+        .eq('id', campaign.id);
 
       if (error) {
-        console.error('Error in delete transaction:', error);
+        console.error('Error cancelling campaign:', error);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to delete campaign"
+          description: "Failed to cancel campaign"
         });
         return;
       }
 
-      console.log('Campaign successfully deleted');
+      console.log('Campaign successfully cancelled');
       toast({
         title: "Success",
-        description: "Campaign deleted successfully"
+        description: "Campaign cancelled successfully"
       });
 
       onOpenChange(false);
-      await onDelete();
+      await onDelete(); // This will trigger a refetch of the campaigns
     } catch (error) {
-      console.error('Unexpected error during deletion:', error);
+      console.error('Unexpected error during cancellation:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -105,7 +106,7 @@ export function CampaignDetailsDialog({ campaign, open, onOpenChange, onDelete }
               <Button
                 variant="destructive"
                 className="w-full mt-4"
-                onClick={handleDelete}
+                onClick={handleCancel}
                 disabled={isDeleting}
               >
                 {isDeleting ? "Cancelling..." : "Cancel Campaign"}
