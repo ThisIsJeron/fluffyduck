@@ -14,8 +14,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "./ui/textarea";
-import { useToast } from "./ui/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import {
   Select,
@@ -23,9 +23,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
+} from "@/components/ui/select";
 import { useState } from "react";
-import { ImageUpload } from "./ImageUpload";
+import { ImageUpload } from "@/components/ImageUpload";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
 
