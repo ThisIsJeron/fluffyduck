@@ -3,23 +3,27 @@ import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Campaign } from "@/types/campaign";
 
 interface CampaignActionsProps {
+  campaign: Campaign;
   onEdit: () => void;
   onPost: () => void;
   isPosting: boolean;
 }
 
-export function CampaignActions({ onEdit, onPost, isPosting }: CampaignActionsProps) {
+export function CampaignActions({ campaign, onEdit, onPost, isPosting }: CampaignActionsProps) {
   const { toast } = useToast();
 
   const handlePost = async () => {
     try {
+      console.log('Posting campaign:', campaign);
+      
       const { data, error } = await supabase.functions.invoke('execute-campaign', {
         body: {
           campaign: {
-            title: "Your campaign title",  // You'll need to pass this from props
-            caption: "Your campaign caption" // You'll need to pass this from props
+            title: campaign.title,
+            caption: campaign.caption
           }
         }
       });
@@ -28,10 +32,15 @@ export function CampaignActions({ onEdit, onPost, isPosting }: CampaignActionsPr
         throw error;
       }
 
+      console.log('Campaign posted successfully:', data);
+      
       toast({
         title: "Success",
         description: "Campaign posted successfully via Pica"
       });
+
+      // Call the onPost callback to update the UI
+      onPost();
     } catch (error) {
       console.error('Post error:', error);
       toast({

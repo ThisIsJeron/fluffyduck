@@ -59,6 +59,7 @@ export function CampaignContent({
           <>
             <CampaignHeader campaign={campaign} />
             <CampaignActions
+              campaign={campaign}
               onEdit={onEdit}
               onPost={onPost}
               isPosting={isPosting}
