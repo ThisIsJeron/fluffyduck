@@ -131,17 +131,43 @@ const CreateCampaign = () => {
         body: formData
       });
 
-      const responseData = await response.json();
-
+      // Check if response is ok before trying to parse JSON
       if (!response.ok) {
-        // Handle validation errors from FastAPI
-        if (responseData.detail && Array.isArray(responseData.detail)) {
-          const errorMessages = responseData.detail.map((error: any) => error.msg).join(', ');
-          throw new Error(errorMessages);
+        // Try to get error details from response
+        let errorMessage = 'Failed to generate images';
+        try {
+          const errorData = await response.text();
+          console.error('Error response:', errorData);
+          
+          // Try to parse as JSON if possible
+          try {
+            const jsonError = JSON.parse(errorData);
+            if (jsonError.detail) {
+              errorMessage = Array.isArray(jsonError.detail) 
+                ? jsonError.detail.map((error: any) => error.msg).join(', ')
+                : jsonError.detail;
+            }
+          } catch (e) {
+            // If not JSON, use the raw text
+            errorMessage = errorData || errorMessage;
+          }
+        } catch (e) {
+          console.error('Error reading response:', e);
         }
-        throw new Error(responseData.detail || 'Failed to generate images');
+        
+        throw new Error(errorMessage);
       }
 
+      // Get response text first
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
+
+      // Try to parse as JSON
+      if (!responseText) {
+        throw new Error('Empty response from server');
+      }
+
+      const responseData = JSON.parse(responseText);
       console.log('API Response:', responseData);
 
       if (!responseData.generated_images || !Array.isArray(responseData.generated_images)) {
