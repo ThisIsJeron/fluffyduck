@@ -8,6 +8,7 @@ import os
 from dotenv import load_dotenv
 import base64
 from io import BytesIO
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -56,6 +57,9 @@ async def enhance_restaurant_photo(
 ) -> Dict:
     """Enhance existing restaurant food photography while maintaining composition"""
     try:
+        print("\n=== Starting photo enhancement ===")
+        print(f"Processing for platform: {platforms[0] if platforms else 'Instagram'}")
+        
         # Platform-specific enhancement styles
         primary_platform = platforms[0] if platforms else "Instagram"
         style_modifiers = {
@@ -102,6 +106,7 @@ async def enhance_restaurant_photo(
             'aspect_ratio': "square_hd"
         })
 
+        print("Crafting enhancement prompt...")
         # Craft detailed enhancement prompt
         prompt = (
             f"Enhance this exact food photo for {name} restaurant marketing. "
@@ -119,7 +124,9 @@ async def enhance_restaurant_photo(
             "Enhance existing shadows and highlights. "
             "Keep natural, authentic food appearance."
         )
+        print("Prompt created successfully")
 
+        print("Configuring FAL API parameters...")
         # Configure enhancement parameters
         arguments = {
             "prompt": prompt,
@@ -142,24 +149,22 @@ async def enhance_restaurant_photo(
             "control_guidance_end": 1.0
         }
 
-        print(f"Enhancing existing food photo for {primary_platform}...")
-        print(f"Using prompt: {prompt}")
-        
+        print("Calling FAL API...")
         # Call FAL API
-        result = fal_client.subscribe(
-            "fal-ai/stable-diffusion-v15",
-            arguments=arguments,
+        result = await fal_client.subscribe(
+            "110602490-sdxl-turbo-food-enhancement",
+            arguments,
             with_logs=True
         )
         
-        print("Raw FAL API response:", result)  # Debug log
+        print("Raw FAL API response:", result)
         
         if not isinstance(result, dict) or 'images' not in result:
             raise ValueError(f"Invalid response format from Fal.ai: {result}")
 
         # Extract image URLs
         generated_urls = [img['url'] for img in result['images']]
-        print("Generated image URLs:", generated_urls)  # Debug log
+        print("Generated image URLs:", generated_urls)
 
         return {
             'generated_images': generated_urls,
@@ -179,56 +184,55 @@ async def generate_campaign(
     """Enhance existing restaurant food photos for marketing campaign"""
     try:
         print("\n=== Starting new campaign generation ===")
+        print(f"Timestamp: {datetime.now()}")
         
-        # Debug information
+        # Debug request data
+        print("1. Checking request data...")
         print(f"Campaign data received: {campaign}")
         print(f"Image details:")
         print(f"- Filename: {reference_image.filename if reference_image else 'No file'}")
         print(f"- Content type: {reference_image.content_type if reference_image else 'No content type'}")
 
         # Validate campaign data
+        print("2. Validating campaign data...")
         try:
             campaign_data = json.loads(campaign)
             campaign_request = CampaignRequest(**campaign_data)
+            print("Campaign data validation successful")
         except json.JSONDecodeError as e:
+            print(f"Campaign data validation failed: {str(e)}")
             raise HTTPException(
                 status_code=400,
                 detail="Invalid campaign data format"
             )
 
-        # Validate image file
-        if not reference_image or not reference_image.filename:
-            raise HTTPException(
-                status_code=400,
-                detail="No image file was uploaded. Please select an image."
-            )
-
-        # Read and validate image content
+        # Validate and process image
+        print("3. Processing image...")
         try:
             contents = await reference_image.read()
             file_size = len(contents)
             print(f"- File size: {file_size} bytes")
             
             if file_size == 0:
+                print("Empty file detected")
                 raise HTTPException(
                     status_code=400,
                     detail="Empty image file"
                 )
             
-            # Reset file position after reading
-            await reference_image.seek(0)
-            
-            # Convert image to base64 for FAL API
+            print("4. Converting image to base64...")
             reference_image_data = f"data:image/jpeg;base64,{base64.b64encode(contents).decode('utf-8')}"
+            print("Image conversion successful")
             
         except Exception as e:
-            print(f"Error reading image: {str(e)}")
+            print(f"Image processing error: {str(e)}")
             raise HTTPException(
                 status_code=400,
-                detail="Error reading image file. Please try uploading again."
+                detail=f"Error processing image: {str(e)}"
             )
 
-        # Enhance the photo
+        # Call FAL API
+        print("5. Calling FAL API...")
         try:
             result = await enhance_restaurant_photo(
                 name=campaign_request.name,
@@ -237,25 +241,14 @@ async def generate_campaign(
                 platforms=campaign_request.platforms,
                 reference_image_data=reference_image_data
             )
-            
-            print("Enhancement result:", result)  # Debug log
-            print("Generated images URLs:", result.get('generated_images', []))  # Debug log
-            
-            # Ensure we're returning the correct format
-            response = {
-                'generated_images': result['generated_images'],
-                'prompt': result['prompt'],
-                'style_used': result['style_used']
-            }
-            
-            print("Sending response:", response)  # Debug log
-            return response
+            print("6. FAL API call successful")
+            return result
             
         except Exception as e:
-            print(f"Enhancement error: {str(e)}")
+            print(f"FAL API error: {str(e)}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Error enhancing photo: {str(e)}"
+                detail=f"Error from FAL API: {str(e)}"
             )
 
     except HTTPException as he:

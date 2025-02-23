@@ -29,85 +29,41 @@ import { ImageUpload } from "./ImageUpload";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
 
+const formSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters."),
+  description: z.string().min(10, "Description must be at least 10 characters."),
+  target_audience: z.string().min(2, "Target audience is required."),
+  cadence: z.string(),
+  platforms: z.string()
+});
+
 const CreateCampaign = () => {
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [campaignName, setCampaignName] = useState("");
-  const [description, setDescription] = useState("");
-  const [cadence, setCadence] = useState("");
-  const [targetAudience, setTargetAudience] = useState("");
-  const [platforms, setPlatforms] = useState("");
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
-  
-  const navigate = useNavigate();
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      target_audience: "",
+      cadence: "",
+      platforms: ""
+    }
+  });
+
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files).map(file => {
-        const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        if (!validImageTypes.includes(file.type)) {
-          toast({
-            title: "Error",
-            description: "Please upload only JPEG, PNG, GIF, or WEBP images",
-            variant: "destructive",
-          });
-          return null;
-        }
+  console.log('API URL:', API_URL); // Debug log
 
-        return {
-          ...file,
-          preview: URL.createObjectURL(file)
-        };
-      }).filter(Boolean) as UploadedFile[];
-
-      if (files.length > 0) {
-        setUploadedFiles(prev => [...prev, ...files]);
-      }
-    }
-  };
-
-  const removeFile = (index: number) => {
-    setUploadedFiles(prev => {
-      const newFiles = [...prev];
-      URL.revokeObjectURL(newFiles[index].preview);
-      newFiles.splice(index, 1);
-      return newFiles;
-    });
-  };
-
-  const checkServerAvailability = async () => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/health`);
-      if (!response.ok) {
-        throw new Error('Backend server is not responding properly');
-      }
-      const data = await response.text();
-      console.log('Backend health check response:', data);
-      return true;
-    } catch (error) {
-      console.error('Server availability check failed:', error);
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.error('This might be a CORS or server connection issue');
-      }
-      return false;
-    }
-  };
+      console.log('Making request to:', API_URL);
+      console.log('Form values:', values);
+      console.log('Files:', uploadedFiles);
 
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    try {
-      const isServerAvailable = await checkServerAvailability();
-      if (!isServerAvailable) {
-        throw new Error('Backend server is not available. Please ensure the backend server is running and accessible');
-      }
-
-      if (!campaignName || !description || !targetAudience || !platforms) {
+      if (uploadedFiles.length === 0) {
         toast({
           title: "Error",
           description: "Please upload an image",
@@ -116,111 +72,49 @@ const CreateCampaign = () => {
         return;
       }
 
-      // Create FormData
       const formData = new FormData();
-      
-      const campaignData = {
-        name: campaignName,
-        description: description,
-        target_audience: targetAudience,
-        cadence: cadence,
-        platforms: [platforms]
-      };
-      
-      formData.append('campaign', JSON.stringify(campaignData));
-      
-      const fileToUpload = uploadedFiles[0];
+      formData.append('reference_image', uploadedFiles[0]);
+      formData.append('campaign', JSON.stringify({
+        name: values.name,
+        description: values.description,
+        target_audience: values.target_audience,
+        cadence: values.cadence,
+        platforms: [values.platforms]
+      }));
 
-      const imageFile = new File(
-        [fileToUpload],
-        fileToUpload.name,
-        {
-          type: fileToUpload.type,
-          lastModified: new Date().getTime()
-        }
-      );
-
-      formData.append('reference_image', imageFile);
-
-      console.log('Sending data to backend:', {
-        campaignData,
-        fileType: imageFile.type,
-        fileName: imageFile.name,
-        fileSize: imageFile.size,
-        formDataEntries: Array.from(formData.entries()).map(([key, value]) => ({
-          key,
-          type: value instanceof File ? value.type : typeof value
-        }))
-      });
-
-      const response = await fetch(`${API_URL}/generate-campaign`, {
+      const response = await fetch(`${API_URL}/api/generate-campaign`, {
         method: 'POST',
         body: formData
       });
 
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
-        let errorMessage = 'Failed to generate images';
-        try {
-          const errorData = await response.text();
-          console.error('Error response:', errorData);
-          
-          try {
-            const jsonError = JSON.parse(errorData);
-            if (jsonError.detail) {
-              errorMessage = Array.isArray(jsonError.detail) 
-                ? jsonError.detail.map((error: any) => error.msg).join(', ')
-                : jsonError.detail;
-            }
-          } catch (e) {
-            errorMessage = errorData || errorMessage;
-          }
-        } catch (e) {
-          console.error('Error reading response:', e);
-          if (!window.navigator.onLine) {
-            errorMessage = 'You are currently offline. Please check your internet connection.';
-          } else if (response.status === 404) {
-            errorMessage = 'The generate-campaign endpoint does not exist. Please ensure the backend server is properly configured.';
-          } else if (response.status === 503 || response.status === 502 || response.status === 504) {
-            errorMessage = 'The server is temporarily unavailable. Please try again in a few minutes.';
-          }
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
-
-      if (!responseText) {
-        throw new Error('Empty response from server');
-      }
-
-      const responseData = JSON.parse(responseText);
-      console.log('API Response:', responseData);
-
-      if (!responseData.generated_images || !Array.isArray(responseData.generated_images)) {
-        throw new Error('Invalid response format from API');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      // Update UI with generated images
-      setGeneratedImages(data.generated_images);
+      const data = await response.json();
+      console.log('Response data:', data);
 
-      toast({
-        title: "Success",
-        description: "Campaign generated successfully!",
-      });
+      if (data.generated_images) {
+        setGeneratedImages(data.generated_images);
+        toast({
+          title: "Success",
+          description: "Campaign generated successfully!",
+        });
+      }
 
     } catch (error) {
       console.error('Error:', error);
       toast({
         title: "Error",
-        description: "Failed to generate campaign",
+        description: error instanceof Error ? error.message : "Failed to generate campaign",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="max-w-2xl mx-auto p-4">
@@ -359,4 +253,6 @@ const CreateCampaign = () => {
       )}
     </div>
   );
-}
+};
+
+export default CreateCampaign;
