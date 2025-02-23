@@ -20,7 +20,7 @@ export function CampaignActions({ campaign, onEdit, onPost, isPosting }: Campaig
       console.log('Posting campaign:', campaign);
       
       const { data, error } = await supabase.functions.invoke('execute-campaign', {
-        body: {
+        body: { 
           campaign: {
             title: campaign.title,
             caption: campaign.caption
@@ -29,24 +29,40 @@ export function CampaignActions({ campaign, onEdit, onPost, isPosting }: Campaig
       });
 
       if (error) {
-        throw error;
+        console.error('Supabase function error:', error);
+        const errorMessage = error.message || 'Failed to post campaign';
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: errorMessage
+        });
+        return;
+      }
+
+      if (!data?.success) {
+        console.error('Campaign posting failed:', data?.error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: data?.error || "Failed to post campaign"
+        });
+        return;
       }
 
       console.log('Campaign posted successfully:', data);
-      
       toast({
         title: "Success",
-        description: "Campaign posted successfully via Pica"
+        description: "Campaign posted successfully"
       });
 
       // Call the onPost callback to update the UI
       onPost();
     } catch (error) {
-      console.error('Post error:', error);
+      console.error('Unexpected error during posting:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to post campaign. Check console for details."
+        description: "An unexpected error occurred while posting the campaign"
       });
     }
   };

@@ -27,26 +27,31 @@ async function executePicaCommand(title: string, caption: string) {
     });
     console.log('Request body:', requestBody);
 
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${PICA_API_KEY}`
-      },
-      body: requestBody
-    });
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${PICA_API_KEY}`
+        },
+        body: requestBody
+      });
 
-    console.log('Pica API response status:', response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Pica API error response:', errorText);
-      throw new Error(`Pica API error: ${response.status} - ${errorText}`);
+      console.log('Pica API response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Pica API error response:', errorText);
+        throw new Error(`Pica API error: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('Pica API success response:', result);
+      return result;
+    } catch (fetchError) {
+      console.error('Fetch error:', fetchError);
+      throw new Error(`Error connecting to Pica API: ${fetchError.message}`);
     }
-
-    const result = await response.json();
-    console.log('Pica API success response:', result);
-    return result;
   } catch (error) {
     console.error('Error in executePicaCommand:', error);
     throw error;
@@ -54,7 +59,6 @@ async function executePicaCommand(title: string, caption: string) {
 }
 
 serve(async (req) => {
-  // IMPORTANT: Handle CORS preflight requests first
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -91,12 +95,11 @@ serve(async (req) => {
   } catch (error: any) {
     console.error('Error in request handler:', error);
     
-    // Send a more detailed error response
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message,
-        details: error.stack
+        error: error.message || 'An unexpected error occurred',
+        details: error.stack || ''
       }),
       { 
         status: 500,
