@@ -174,7 +174,7 @@ const Dashboard = () => {
           {isLoading ? (
             <div className="text-center py-12">Loading campaigns...</div>
           ) : filteredCampaigns.length > 0 ? (
-            <div className="columns-1 md:columns-2 lg:columns-3 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               {filteredCampaigns.map((campaign) => (
                 <div key={campaign.id} className="mb-4 break-inside-avoid">
                   <CampaignCard campaign={campaign} />

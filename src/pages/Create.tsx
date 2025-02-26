@@ -8,6 +8,7 @@ import { Campaign } from "@/types/campaign";
 import { CampaignDetailsDialog } from "@/components/campaign/CampaignDetailsDialog";
 import { useState } from "react";
 import { format, isBefore, isAfter, startOfToday, isWithinInterval } from "date-fns";
+import { CampaignCards } from "@/components/campaign/CampaignCards";
 import { useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -30,18 +31,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 import MediaUpload from "@/components/campaign/MediaUpload";
+import CampaignFormV2 from "@/components/campaign/CampaignFormV2";
 
-type Step = "input" | "option" | "congrats"
+type Step = "input" | "option" | "congrats";
+interface CampaignCard {
+  id: number;
+  title: string;
+  description: string;
+  image: string;
+}
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
 
 const Create = () => {
-  const currentStep: Step = "input"
+  const [currentStep, setCurrentStep] = useState<Step>("input");
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [formData, setFormData] = useState<any>(null);
+  const [startDate, setStartDate] = useState<Date>();
+  const [endDate, setEndDate] = useState<Date>();
+  const [generatedCampaigns, setGeneratedCampaigns] = useState<CampaignCard[]>([]);
+
 
   const location = useLocation();
   const isPastRoute = location.pathname === '/dashboard/past';
@@ -49,56 +62,67 @@ const Create = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
-      console.log('Making request to:', API_URL);
-      console.log('Form values:', values);
-      console.log('Files:', uploadedFiles);
-
-      if (uploadedFiles.length === 0) {
-        toast({
-          title: "Error",
-          description: "Please upload an image",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('reference_image', uploadedFiles[0]);
-      formData.append('campaign', JSON.stringify({
-        name: values.name,
-        description: values.description,
-        target_audience: values.target_audience,
-        cadence: values.cadence,
-        platforms: [values.platforms]
-      }));
-
-      const response = await fetch(`${API_URL}/api/generate-campaign`, {
-        method: 'POST',
-        body: formData
+      // Store form data for use in campaign selection
+      setFormData({
+        ...values,
+        start_date: startDate,
+        end_date: endDate,
       });
 
-      console.log('Response status:', response.status);
+      const generateCampaignCards = async () => {
+        // Get public URLs for the sample campaign images
+        const { data: { publicUrl: url1 } } = supabase
+          .storage
+          .from('campaign_media')
+          .getPublicUrl('1.jpeg');
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+        const { data: { publicUrl: url2 } } = supabase
+          .storage
+          .from('campaign_media')
+          .getPublicUrl('2.jpeg');
 
-      const data = await response.json();
-      console.log('Response data:', data);
+        const { data: { publicUrl: url3 } } = supabase
+          .storage
+          .from('campaign_media')
+          .getPublicUrl('3.jpeg');
 
-      if (data.generated_images) {
-        setGeneratedImages(data.generated_images);
-        toast({
-          title: "Success",
-          description: "Campaign generated successfully!",
-        });
-      }
+        return [
+          {
+            id: 1,
+            title: "Modern & Bold",
+            description: "A contemporary approach that captures attention with bold visuals and compelling messaging.",
+            image: url1
+          },
+          {
+            id: 2,
+            title: "Classic & Elegant",
+            description: "Timeless design that emphasizes sophistication and brand heritage.",
+            image: url2
+          },
+          {
+            id: 3,
+            title: "Creative & Playful",
+            description: "An innovative take that sparks engagement through creative storytelling.",
+            image: url3
+          }
+        ];
+      };
+
+      // Generate campaign variations
+      const campaignCards = await generateCampaignCards();
+      setGeneratedCampaigns(campaignCards);
+      setCurrentStep("option")
+
+      toast({
+        title: "Success",
+        description: "Campaign variations generated successfully!",
+      });
 
     } catch (error) {
       console.error('Error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate campaign",
+        description: "Failed to generate campaign variations. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -213,132 +237,11 @@ const Create = () => {
                   </div>
                 )}
               </div>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-[47.5%]">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Campaign Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter campaign name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Describe your campaign goals"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="target_audience"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Target Audience</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Who is this campaign for?" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="cadence"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Posting Cadence</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select posting frequency" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="daily">Daily</SelectItem>
-                            <SelectItem value="weekly">Weekly</SelectItem>
-                            <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="platforms"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Platform</FormLabel>
-                        <div className="flex flex-wrap gap-y-4 gap-x-10">
-                          {[
-                            { name: "Instagram", icon: <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png" alt="Instagram" className="h-8 w-fit" /> },
-                            { name: "Facebook", icon: <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg" alt="Facebook" className="h-8 w-fit" /> },
-                            { name: "LinkedIn", icon: <img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png" alt="LinkedIn" className="h-8 w-fit" /> },
-                            { name: "X", icon: <img src="https://upload.wikimedia.org/wikipedia/commons/c/ce/X_logo_2023.svg" alt="X" className="h-8 w-fit" /> },
-                            { name: "TikTok", icon: <img src="https://upload.wikimedia.org/wikipedia/en/thumb/a/a9/TikTok_logo.svg/1024px-TikTok_logo.svg.png" alt="TikTok" className="h-8 w-fit" /> },
-                            { name: "Gmail", icon: <img src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg" alt="Gmail" className="h-8 w-fit" /> },
-                            { name: "SMS", icon: <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/IMessage_logo.svg" alt="SMS" className="h-8 w-fit" /> },
-                          ].map((platform) => (
-                            <label key={platform.name} className="flex items-center space-x-2">
-                              <input
-                                type="radio"
-                                name="platform"
-                                value={platform.name}
-                                onChange={() => field.onChange(platform.name)}
-                                checked={field.value === platform.name}
-                                className="form-radio custom-radio"
-                                style={{
-                                  appearance: 'none',
-                                  width: '1.25rem',
-                                  height: '1.25rem',
-                                  backgroundColor: field.value === platform.name ? '#CFB232' : '#fff',
-                                  border: '2px solid #d1d5db',
-                                  borderRadius: '50%',
-                                  display: 'grid',
-                                  placeContent: 'center',
-                                  cursor: 'pointer',
-                                }}
-                              />
-                              <span className="flex items-center space-x-2">
-                                {platform.icon}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" disabled={isLoading} className="h-10 flex items-center justify-center">
-                    {isLoading && <Loader2 className="mr-2  h-4 w-4 animate-spin" />}
-                    Generate Campaign
-                  </Button>
-                </form>
-              </Form>
+              <CampaignFormV2 onSubmit={onSubmit} isLoading={isLoading} />
             </div>
-          ) : currentStep === "options" ? (
+          ) : currentStep === "option" ? (
             <div>
+              <CampaignCards campaigns={generatedCampaigns} formData={formData} />
             </div>
           ) :
             currentStep === "congrats" && (
