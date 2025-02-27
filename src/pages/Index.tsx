@@ -30,7 +30,7 @@ const Index = () => {
               <a href="#contact" className="text-gray-600 hover:text-accent transition-colors">Contact</a>
             </div>
             <Link 
-              to="/create-campaign" 
+              to="/create" 
               className="bg-primary text-white px-6 py-2 rounded-full hover:bg-accent transition-colors"
             >
               Get Started
@@ -54,7 +54,7 @@ const Index = () => {
             <p className="text-xl text-gray-600 mb-8">
               Automate customer interactions, streamline catering operations, and grow your business effortlessly.
             </p>
-            <Link to="/create-campaign" className="bg-accent text-white px-8 py-4 rounded-full text-lg font-medium hover:bg-accent/90 transition-colors inline-flex items-center gap-2">
+            <Link to="/create" className="bg-accent text-white px-8 py-4 rounded-full text-lg font-medium hover:bg-accent/90 transition-colors inline-flex items-center gap-2">
               Create a Campaign
               <ArrowRight className="w-5 h-5" />
             </Link>
