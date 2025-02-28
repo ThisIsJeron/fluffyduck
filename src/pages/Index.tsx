@@ -1,11 +1,14 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Bot, Briefcase, ChartBar, Mail, Phone, ArrowRight } from "lucide-react";
+import { Bot, Briefcase, ChartBar, Mail, Phone, ArrowRight, LogIn } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
 
 const Index = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,12 +32,23 @@ const Index = () => {
               <a href="#how-it-works" className="text-gray-600 hover:text-accent transition-colors">How it Works</a>
               <a href="#contact" className="text-gray-600 hover:text-accent transition-colors">Contact</a>
             </div>
-            <Link 
-              to="/create" 
-              className="bg-primary text-white px-6 py-2 rounded-full hover:bg-accent transition-colors"
-            >
-              Get Started
-            </Link>
+            <div className="flex gap-2">
+              {!user && (
+                <Link 
+                  to="/auth" 
+                  className="flex items-center gap-1 text-gray-600 px-6 py-2 rounded-full hover:bg-gray-100"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Sign In
+                </Link>
+              )}
+              <Link 
+                to={user ? "/create" : "/auth"}
+                className="bg-primary text-white px-6 py-2 rounded-full hover:bg-accent transition-colors"
+              >
+                Get Started
+              </Link>
+            </div>
           </div>
         </div>
       </nav>
@@ -54,7 +68,10 @@ const Index = () => {
             <p className="text-xl text-gray-600 mb-8">
               Automate customer interactions, streamline catering operations, and grow your business effortlessly.
             </p>
-            <Link to="/create" className="bg-accent text-white px-8 py-4 rounded-full text-lg font-medium hover:bg-accent/90 transition-colors inline-flex items-center gap-2">
+            <Link 
+              to={user ? "/create" : "/auth"} 
+              className="bg-accent text-white px-8 py-4 rounded-full text-lg font-medium hover:bg-accent/90 transition-colors inline-flex items-center gap-2"
+            >
               Create a Campaign
               <ArrowRight className="w-5 h-5" />
             </Link>

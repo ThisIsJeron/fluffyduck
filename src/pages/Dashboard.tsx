@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { MessageCircle, Heart, Eye, CheckCircle } from "lucide-react";
@@ -8,23 +9,29 @@ import { Campaign } from "@/types/campaign";
 import { CampaignDetailsDialog } from "@/components/campaign/CampaignDetailsDialog";
 import { useState } from "react";
 import { format, isBefore, isAfter, startOfToday, isWithinInterval } from "date-fns";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/context/AuthContext";
 
 const Dashboard = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
   const location = useLocation();
+  const navigate = useNavigate();
   const isPastRoute = location.pathname === '/dashboard/past';
+  const { user } = useAuth();
 
   const { data: campaigns, isLoading, refetch } = useQuery({
-    queryKey: ['selected-campaigns'],
+    queryKey: ['selected-campaigns', user?.id],
     queryFn: async () => {
-      console.log('Fetching selected campaigns...');
+      if (!user) return [];
+
+      console.log('Fetching selected campaigns for user:', user.id);
       const { data, error } = await supabase
         .from('selected_campaigns')
         .select('*')
+        .eq('user_id', user.id)
         .order('end_date', { ascending: !isPastRoute });
 
       if (error) {
@@ -38,7 +45,8 @@ const Dashboard = () => {
         start_date: campaign.start_date ? new Date(campaign.start_date) : null,
         end_date: campaign.end_date ? new Date(campaign.end_date) : null
       }));
-    }
+    },
+    enabled: !!user
   });
 
   const today = startOfToday();
@@ -119,16 +127,6 @@ const Dashboard = () => {
 
         <div className="p-4 flex justify-between ">
           <h3 className="font-medium mb-2">{campaign.title}</h3>
-          {/* <div className="text-sm text-gray-500 mb-2">
-            {campaign.end_date && (
-              <p>
-                {isPastRoute
-                  ? `Ended ${format(campaign.end_date, 'MMM dd, yyyy')}`
-                  : `Ends ${format(campaign.end_date, 'MMM dd, yyyy')}`
-                }
-              </p>
-            )}
-          </div> */}
           {renderMetrics(campaign)}
         </div>
       </motion.div>

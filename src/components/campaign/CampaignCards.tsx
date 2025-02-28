@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 interface CampaignCard {
   id: number;
@@ -19,9 +20,21 @@ interface CampaignCardsProps {
 export const CampaignCards = ({ campaigns, formData }: CampaignCardsProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleSelect = async (campaign: CampaignCard) => {
     try {
+      // Check if user is authenticated
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to create a campaign",
+          variant: "destructive",
+        });
+        navigate("/auth");
+        return;
+      }
+
       // Create the campaign in the selected_campaigns table
       const { data, error } = await supabase
         .from('selected_campaigns')
@@ -36,6 +49,7 @@ export const CampaignCards = ({ campaigns, formData }: CampaignCardsProps) => {
             target_audience: formData?.target_audience,
             cadence: formData?.cadence,
             hashtags: ["#marketing", "#socialmedia", "#campaign"], // Default hashtags
+            user_id: user.id
           }
         ])
         .select()

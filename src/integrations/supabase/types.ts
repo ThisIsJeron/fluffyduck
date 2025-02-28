@@ -24,6 +24,7 @@ export type Database = {
           start_date: string | null
           target_audience: string | null
           title: string
+          user_id: string | null
         }
         Insert: {
           cadence?: string | null
@@ -39,6 +40,7 @@ export type Database = {
           start_date?: string | null
           target_audience?: string | null
           title: string
+          user_id?: string | null
         }
         Update: {
           cadence?: string | null
@@ -54,6 +56,40 @@ export type Database = {
           start_date?: string | null
           target_audience?: string | null
           title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string
+          id: string
+          phone: string | null
+          restaurant_name: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email: string
+          id: string
+          phone?: string | null
+          restaurant_name?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          phone?: string | null
+          restaurant_name?: string | null
+          updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -72,6 +108,7 @@ export type Database = {
           start_date: string | null
           target_audience: string | null
           title: string
+          user_id: string | null
         }
         Insert: {
           cadence?: string | null
@@ -87,6 +124,7 @@ export type Database = {
           start_date?: string | null
           target_audience?: string | null
           title: string
+          user_id?: string | null
         }
         Update: {
           cadence?: string | null
@@ -102,6 +140,7 @@ export type Database = {
           start_date?: string | null
           target_audience?: string | null
           title?: string
+          user_id?: string | null
         }
         Relationships: []
       }
