@@ -1,69 +1,136 @@
-# Welcome to your Lovable project
+# FluffyDuck
 
-## Project info
+Welcome to the FluffyDuck repository! This project is a functional prototype of an AI agent that manages a restaurant's social media presence and customer inquiries via email/phone. Below you’ll find an overview of the project, how to run it locally, and instructions for local testing.
 
-**URL**: https://lovable.dev/projects/e795fb5e-38f2-412d-93de-ba7ee9aa9f79
+---
 
-## How can I edit this code?
+## Table of Contents
 
-There are several ways of editing your application.
+1. [Project Overview](#project-overview)  
+2. [Installation & Setup](#installation--setup)  
+3. [Running Locally](#running-locally)  
+4. [Local Testing](#local-testing)  
+5. [Key Technologies](#key-technologies)  
+6. [Project Phases](#project-phases)  
+7. [DevPost Info](#devpost-info)  
+8. [License](#license)
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/e795fb5e-38f2-412d-93de-ba7ee9aa9f79) and start prompting.
+## Project Overview
 
-Changes made via Lovable will be committed automatically to this repo.
+FluffyDuck is designed to help restaurant owners effectively engage their audience through social media, email, and basic AI-driven phone interactions. By automating repetitive tasks, restaurants can focus on what they do best—cooking delicious food and providing top-notch service.  
 
-**Use your preferred IDE**
+The repository contains:  
+- A frontend (Vite + TypeScript + React + Tailwind)  
+- A backend (FastAPI + Python) for AI tasks and integrations with third-party APIs like ElevenLabs, fal, Pica, and more  
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Check out our Figma for design prototypes:  
+[FluffyDuck Figma](https://www.figma.com/design/nqc0DwBp0ZK3bklu1dXBzi/doodling?node-id=0-1&t=atWOAR2aTAz9PFyH-1)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## Installation & Setup
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. **Clone the Repository**
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+   ```sh
+   git clone <YOUR_GIT_URL>
+   cd <YOUR_PROJECT_NAME>
+   ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+2. **Install Node.js and Packages**
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+   Make sure you have Node.js and npm installed.  
+   - Recommended: use [nvm](https://github.com/nvm-sh/nvm#installing-and-updating) to manage Node versions.
 
-**Edit a file directly in GitHub**
+   Then install dependencies:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+   ```sh
+   npm install
+   ```
 
-**Use GitHub Codespaces**
+3. **(Optional) Create a Python Environment**  
+   If you plan to run the backend, create and activate a Python environment (via conda or virtualenv):
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+   Using pip + requirements:
+   ```sh
+   cd backend
+   pip install -r requirements.txt
+   ```
 
-## What technologies are used for this project?
+4. **Environment Variables**  
+   - Copy or create a .env file in the backend.  
+   - You’ll need keys for services like ElevenLabs, fal, PostHog, and possibly others.  
+   - Example variables:
+     ```
+     ELEVENLABS_API_KEY=your-elevenlabs-api-key
+     FAL_KEY=your-fal-api-key
+     SUPABASE_URL=your-supabase-url
+     SUPABASE_ANON_KEY=your-supabase-anon-key
+     ...
+     ```
 
-This project is built with .
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Running Locally
 
-## How can I deploy this project?
+### Frontend (React)
 
-Simply open [Lovable](https://lovable.dev/projects/e795fb5e-38f2-412d-93de-ba7ee9aa9f79) and click on Share -> Publish.
+1. **Run Vite Dev Server**
 
-## I want to use a custom domain - is that possible?
+   ```sh
+   npm run dev
+   ```
+   This starts the local dev server (usually on http://localhost:5173).
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+### Backend (FastAPI)
+
+1. **Activate Your Python Environment (if using conda/virtualenv)**
+   ```sh
+   conda activate social-agent
+   ```
+   or
+   ```sh
+   source venv/bin/activate
+   ```
+
+2. **Run the Backend**
+   ```sh
+   cd backend
+   uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+   ```
+   The backend should now be accessible at http://localhost:8000.
+
+---
+
+## Local Testing
+
+We use [pytest](https://docs.pytest.org/) for our Python tests, including async tests. Make sure you have all dependencies installed (see above steps), and then:
+
+1. **Activate your Python environment** (if not already done).
+2. **Navigate to the backend directory**:
+   ```sh
+   cd backend
+   ```
+3. **Run tests**:
+   ```sh
+   python -m pytest tests --cov=src --cov-report=term-missing --cov-fail-under=80
+   ```
+   This will run all tests in the tests/ folder, generate a coverage report, and fail if code coverage is below 80%.
+
+You can also inspect the GitHub Actions CI workflow in the [.github/workflows](./.github/workflows) directory to see how the tests and coverage are run in a CI environment.
+
+---
+
+## Key Technologies
+
+- **Vite + TypeScript + React** for the frontend
+- **shadcn-ui** component library
+- **Tailwind CSS** for styling
+- **FastAPI + Python** for the backend
+- **ElevenLabs** for text-to-speech
+- **fal** for image/video generation
+- **Pica** to automate agent processes
+- **Supabase** (or Upstash) for database or additional services
+
