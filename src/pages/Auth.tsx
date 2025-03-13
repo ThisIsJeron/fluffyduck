@@ -22,7 +22,13 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      if (!email || !password || !restaurantName) {
+        throw new Error("Please fill in all fields");
+      }
+
+      console.log("Starting sign up with:", { email, restaurantName });
+      
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -34,10 +40,21 @@ const Auth = () => {
 
       if (error) throw error;
 
-      toast.success("Sign up successful! Please check your email for verification.");
+      console.log("Sign up response:", data);
+      
+      toast.success(
+        "Sign up successful! Please check your email for confirmation instructions.",
+        { duration: 6000 }
+      );
+      
+      // Clear form after successful signup
+      setEmail("");
+      setPassword("");
+      setRestaurantName("");
+      
     } catch (error: any) {
+      console.error("Sign up error:", error);
       toast.error(error.message || "An error occurred during sign up");
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -48,18 +65,25 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      if (!email || !password) {
+        throw new Error("Please provide both email and password");
+      }
+      
+      console.log("Attempting sign in with:", email);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
 
+      console.log("Sign in successful:", data);
       toast.success("Successfully signed in!");
       navigate("/dashboard");
     } catch (error: any) {
+      console.error("Sign in error:", error);
       toast.error(error.message || "An error occurred during sign in");
-      console.error(error);
     } finally {
       setLoading(false);
     }
