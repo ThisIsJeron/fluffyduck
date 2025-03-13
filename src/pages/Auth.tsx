@@ -16,6 +16,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [restaurantName, setRestaurantName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +36,7 @@ const Auth = () => {
           data: {
             restaurant_name: restaurantName,
           },
+          emailRedirectTo: `${window.location.origin}/auth`,
         },
       });
 
@@ -42,6 +44,7 @@ const Auth = () => {
 
       console.log("Sign up response:", data);
       
+      setEmailSent(true);
       toast.success(
         "Sign up successful! Please check your email for confirmation instructions.",
         { duration: 6000 }
@@ -151,54 +154,76 @@ const Auth = () => {
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={handleSignUp}>
-                <CardContent className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="your@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="restaurant-name">Restaurant Name</Label>
-                    <Input
-                      id="restaurant-name"
-                      type="text"
-                      placeholder="Your Restaurant"
-                      value={restaurantName}
-                      onChange={(e) => setRestaurantName(e.target.value)}
-                      required
-                    />
+              {emailSent ? (
+                <CardContent className="pt-4 text-center">
+                  <div className="rounded-lg bg-primary/10 p-6 mb-4">
+                    <h3 className="text-lg font-medium mb-2">Verify Your Email</h3>
+                    <p className="mb-4">
+                      We've sent a confirmation email to <strong>{email}</strong>.
+                      Please check your inbox and click the confirmation link to activate your account.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Didn't receive an email? Check your spam folder or 
+                      <Button 
+                        variant="link" 
+                        className="p-0 h-auto font-normal underline"
+                        onClick={() => setEmailSent(false)}
+                      >
+                        try again
+                      </Button>
+                    </p>
                   </div>
                 </CardContent>
+              ) : (
+                <form onSubmit={handleSignUp}>
+                  <CardContent className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email">Email</Label>
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
 
-                <CardFooter>
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={loading}
-                  >
-                    {loading ? "Creating account..." : "Create Account"}
-                  </Button>
-                </CardFooter>
-              </form>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password">Password</Label>
+                      <Input
+                        id="signup-password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="restaurant-name">Restaurant Name</Label>
+                      <Input
+                        id="restaurant-name"
+                        type="text"
+                        placeholder="Your Restaurant"
+                        value={restaurantName}
+                        onChange={(e) => setRestaurantName(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </CardContent>
+
+                  <CardFooter>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={loading}
+                    >
+                      {loading ? "Creating account..." : "Create Account"}
+                    </Button>
+                  </CardFooter>
+                </form>
+              )}
             </TabsContent>
           </Tabs>
         </Card>

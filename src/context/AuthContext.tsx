@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface AuthContextType {
   user: User | null;
@@ -20,6 +21,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     console.log("AuthProvider initializing...");
     
+    // Check if we have a hash fragment from email confirmation
+    const handleEmailConfirmation = async () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('type=signup')) {
+        try {
+          setIsLoading(true);
+          const { data, error } = await supabase.auth.getSession();
+          
+          if (error) throw error;
+          
+          if (data?.session) {
+            toast.success("Email confirmed successfully! You are now signed in.");
+          }
+        } catch (error: any) {
+          console.error("Error confirming email:", error);
+          toast.error(error.message || "Failed to confirm email");
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    handleEmailConfirmation();
+    
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log("Initial session:", session);
@@ -35,6 +60,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
+        
+        if (event === 'SIGNED_IN') {
+          toast.success("Successfully signed in!");
+        } else if (event === 'SIGNED_OUT') {
+          toast.info("Signed out successfully");
+        } else if (event === 'USER_UPDATED') {
+          toast.info("User information updated");
+        }
       }
     );
 
