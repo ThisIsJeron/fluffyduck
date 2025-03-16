@@ -27,12 +27,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (hash && hash.includes('type=signup')) {
         try {
           setIsLoading(true);
+          console.log("Detected email confirmation hash:", hash);
+          
           const { data, error } = await supabase.auth.getSession();
           
-          if (error) throw error;
+          if (error) {
+            console.error("Error getting session after email confirmation:", error);
+            throw error;
+          }
           
           if (data?.session) {
+            console.log("Session found after email confirmation:", data.session);
+            setSession(data.session);
+            setUser(data.session.user);
             toast.success("Email confirmed successfully! You are now signed in.");
+          } else {
+            console.log("No session found after email confirmation");
           }
         } catch (error: any) {
           console.error("Error confirming email:", error);
@@ -67,6 +77,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           toast.info("Signed out successfully");
         } else if (event === 'USER_UPDATED') {
           toast.info("User information updated");
+        } else if (event === 'PASSWORD_RECOVERY') {
+          toast.info("Password recovery initiated");
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log("Auth token refreshed");
+        } else if (event === 'MFA_CHALLENGE_VERIFIED') {
+          toast.info("MFA verified successfully");
         }
       }
     );

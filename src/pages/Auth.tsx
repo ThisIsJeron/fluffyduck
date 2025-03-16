@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,14 +9,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { useAuth } from "@/context/AuthContext";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, isLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [restaurantName, setRestaurantName] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+
+  // Redirect authenticated users
+  useEffect(() => {
+    // Don't redirect if we're in the middle of email confirmation
+    const isEmailConfirmation = location.hash && location.hash.includes('type=signup');
+    
+    if (user && !isEmailConfirmation) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate, location]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,7 +176,7 @@ const Auth = () => {
                       Please check your inbox and click the confirmation link to activate your account.
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Didn't receive an email? Check your spam folder or 
+                      Didn't receive an email? Check your spam folder or{" "}
                       <Button 
                         variant="link" 
                         className="p-0 h-auto font-normal underline"

@@ -1,256 +1,231 @@
-import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import { MessageCircle, Heart, Eye, CheckCircle } from "lucide-react";
-import Sidebar from "@/components/layout/Sidebar";
-import { TopHeader } from "@/components/layout/header";
-import { supabase } from "@/integrations/supabase/client";
-import { Campaign } from "@/types/campaign";
-import { CampaignDetailsDialog } from "@/components/campaign/CampaignDetailsDialog";
-import { useState } from "react";
-import { format, isBefore, isAfter, startOfToday, isWithinInterval } from "date-fns";
-import { CampaignCards } from "@/components/campaign/CampaignCards";
-import { useLocation } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-"use client";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/use-toast";
-import { Loader2 } from "lucide-react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
 import MediaUpload from "@/components/campaign/MediaUpload";
-import CampaignFormV2 from "@/components/campaign/CampaignFormV2";
 
-type Step = "input" | "option" | "congrats";
-interface CampaignCard {
-  id: number;
-  title: string;
-  description: string;
-  image: string;
+interface UploadedFile extends File {
+  preview: string;
 }
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
 
 const Create = () => {
-  const [currentStep, setCurrentStep] = useState<Step>("input");
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
-  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
-  const [formData, setFormData] = useState<any>(null);
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
-  const [generatedCampaigns, setGeneratedCampaigns] = useState<CampaignCard[]>([]);
+  const navigate = useNavigate();
+  const { user, session, isLoading } = useAuth();
+  const [restaurantName, setRestaurantName] = useState("");
+  const [campaignName, setCampaignName] = useState("");
+  const [description, setDescription] = useState("");
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [budget, setBudget] = useState<number | null>(null);
+  const [targetAudience, setTargetAudience] = useState("");
+  const [isLoadingSubmit, setIsLoadingSubmit] = useState(false);
 
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, isLoading, navigate]);
 
-  const location = useLocation();
-  const isPastRoute = location.pathname === '/dashboard/past';
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoadingSubmit(true);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsLoading(true);
     try {
-      // Store form data for use in campaign selection
-      setFormData({
-        ...values,
-        start_date: startDate,
-        end_date: endDate,
-      });
+      if (!campaignName || !description || !startDate || !endDate || !budget || !targetAudience || uploadedFiles.length === 0) {
+        throw new Error("Please fill in all fields and upload at least one file");
+      }
 
-      const generateCampaignCards = async () => {
-        // Get public URLs for the sample campaign images
-        const { data: { publicUrl: url1 } } = supabase
-          .storage
-          .from('campaign_media')
-          .getPublicUrl('1.jpeg');
+      const userId = user?.id;
+      if (!userId) {
+        throw new Error("User ID not found. Please sign in again.");
+      }
 
-        const { data: { publicUrl: url2 } } = supabase
-          .storage
-          .from('campaign_media')
-          .getPublicUrl('2.jpeg');
+      // Upload files to Supabase storage
+      const fileUrls = await Promise.all(
+        uploadedFiles.map(async (file) => {
+          const filePath = `campaigns/${userId}/${file.name}`;
+          const { data, error } = await supabase.storage
+            .from('campaign-assets')
+            .upload(filePath, file, {
+              cacheControl: '3600',
+              upsert: false
+            });
 
-        const { data: { publicUrl: url3 } } = supabase
-          .storage
-          .from('campaign_media')
-          .getPublicUrl('3.jpeg');
-
-        return [
-          {
-            id: 1,
-            title: "Modern & Bold",
-            description: "A contemporary approach that captures attention with bold visuals and compelling messaging.",
-            image: url1
-          },
-          {
-            id: 2,
-            title: "Classic & Elegant",
-            description: "Timeless design that emphasizes sophistication and brand heritage.",
-            image: url2
-          },
-          {
-            id: 3,
-            title: "Creative & Playful",
-            description: "An innovative take that sparks engagement through creative storytelling.",
-            image: url3
+          if (error) {
+            console.error("File upload error:", error);
+            throw new Error(`Failed to upload file: ${file.name}`);
           }
-        ];
-      };
 
-      // Generate campaign variations
-      const campaignCards = await generateCampaignCards();
-      setGeneratedCampaigns(campaignCards);
-      setCurrentStep("option")
+          const { data: urlData } = supabase.storage
+            .from('campaign-assets')
+            .getPublicUrl(filePath);
 
-      toast({
-        title: "Success",
-        description: "Campaign variations generated successfully!",
-      });
+          return urlData.publicUrl;
+        })
+      );
 
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate campaign variations. Please try again.",
-        variant: "destructive",
-      });
+      // Save campaign data to Supabase database
+      const { data, error } = await supabase
+        .from('campaigns')
+        .insert([
+          {
+            user_id: userId,
+            restaurant_name: restaurantName,
+            campaign_name: campaignName,
+            description: description,
+            media_urls: fileUrls,
+            start_date: startDate.toISOString(),
+            end_date: endDate.toISOString(),
+            budget: budget,
+            target_audience: targetAudience,
+          },
+        ]);
+
+      if (error) {
+        console.error("Database insert error:", error);
+        throw new Error("Failed to save campaign data");
+      }
+
+      console.log("Campaign created successfully:", data);
+      alert("Campaign created successfully!");
+      navigate('/dashboard');
+
+    } catch (error: any) {
+      console.error("Error creating campaign:", error);
+      alert(error.message || "An error occurred while creating the campaign.");
     } finally {
-      setIsLoading(false);
+      setIsLoadingSubmit(false);
     }
   };
 
-  const formSchema = z.object({
-    name: z.string().min(2, "Name must be at least 2 characters."),
-    description: z.string().min(10, "Description must be at least 10 characters."),
-    target_audience: z.string().min(2, "Target audience is required."),
-    cadence: z.string(),
-    platforms: z.string()
-  });
-
-  const today = startOfToday();
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      target_audience: "",
-      cadence: "",
-      platforms: ""
-    }
-  });
-
-  const isActiveCampaign = (campaign: Campaign) => {
-    if (!campaign.start_date || !campaign.end_date) return false;
-    return isWithinInterval(today, {
-      start: campaign.start_date,
-      end: campaign.end_date
+  const handleFileUpload = (files: File[]) => {
+    const typedFiles: UploadedFile[] = files.map(file => {
+      const uploadedFile = file as UploadedFile;
+      uploadedFile.preview = URL.createObjectURL(file);
+      return uploadedFile;
     });
+    
+    setUploadedFiles(typedFiles);
   };
-
-  const ChannelSelector = () => {
-    return (
-      <div className="w-48">
-        <Select
-          value={selectedPlatform}
-          onValueChange={setSelectedPlatform}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Filter by platform" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Platforms</SelectItem>
-            <SelectItem value="instagram">Instagram</SelectItem>
-            <SelectItem value="facebook">Facebook</SelectItem>
-            <SelectItem value="email">Email</SelectItem>
-            <SelectItem value="sms">SMS</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    )
-  }
 
   return (
-    <div className=" min-h-screen bg-secondary">
-      <TopHeader />
-      <main className="grid grid-cols-7 gap-2 top-[80px]" style={{ height: "calc(100vh - 80px)" }}>
-        <div className="w-full h-full col-span-2">
-          <Sidebar />
-        </div>
-        <div className="w-full h-full col-span-5 overflow-y-auto p-10 pl-4 relative" >
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-2xl font-bold">Create Campaign</h1>
-          </div>
-          {currentStep === "input" ? (
-            <div className="grid-col-2 gap-8">
-              <div className="space-y-4 w-[47.5%] float-right top-0 right-0">
-                <Form {...form}>
-                  <FormItem>
-                    <FormLabel>Upload Media</FormLabel>
-                    <FormControl>
-                      <MediaUpload
-                        uploadedFiles={uploadedFiles.map(file => ({
-                          preview: URL.createObjectURL(file),
-                          lastModified: file.lastModified,
-                          name: file.name,
-                          webkitRelativePath: file.webkitRelativePath,
-                          size: file.size
-                        }))}
-                        onFileUpload={(e) => {
-                          const files = Array.from(e.target.files || []);
-                          setUploadedFiles(files);
-                        }}
-                        onRemoveFile={(index) => {
-                          const newFiles = [...uploadedFiles];
-                          newFiles.splice(index, 1);
-                          setUploadedFiles(newFiles);
-                        }}
-                      />
-                    </FormControl>
-                  </FormItem>
-                </Form>
-                {/* Display generated images */}
-                {generatedImages.length > 0 && (
-                  <div className="mt-8">
-                    <h2 className="text-xl font-bold mb-4">Generated Images</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {generatedImages.map((imageUrl, index) => (
-                        <img
-                          key={index}
-                          src={imageUrl}
-                          alt={`Generated image ${index + 1}`}
-                          className="w-full h-auto rounded-lg shadow-md"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <CampaignFormV2 onSubmit={onSubmit} isLoading={isLoading} />
-            </div>
-          ) : currentStep === "option" ? (
+    <div className="container mx-auto mt-10">
+      <Card>
+        <CardHeader>
+          <CardTitle>Create New Campaign</CardTitle>
+          <CardDescription>Fill out the form below to create a new marketing campaign.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <CampaignCards campaigns={generatedCampaigns} formData={formData} />
+              <label htmlFor="restaurantName" className="block text-sm font-medium text-gray-700">
+                Restaurant Name
+              </label>
+              <input
+                type="text"
+                id="restaurantName"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                value={restaurantName}
+                onChange={(e) => setRestaurantName(e.target.value)}
+                required
+              />
             </div>
-          ) :
-            currentStep === "congrats" && (
-              <div>
-              </div>
-            )}
-        </div>
-      </main >
-    </div >
+            <div>
+              <label htmlFor="campaignName" className="block text-sm font-medium text-gray-700">
+                Campaign Name
+              </label>
+              <input
+                type="text"
+                id="campaignName"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                value={campaignName}
+                onChange={(e) => setCampaignName(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                Description
+              </label>
+              <textarea
+                id="description"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="media" className="block text-sm font-medium text-gray-700">
+                Media Upload
+              </label>
+              <MediaUpload onFileUpload={handleFileUpload} />
+            </div>
+            <div>
+              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
+                Start Date
+              </label>
+              <input
+                type="date"
+                id="startDate"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                value={startDate ? startDate.toISOString().split('T')[0] : ''}
+                onChange={(e) => setStartDate(new Date(e.target.value))}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">
+                End Date
+              </label>
+              <input
+                type="date"
+                id="endDate"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                value={endDate ? endDate.toISOString().split('T')[0] : ''}
+                onChange={(e) => setEndDate(new Date(e.target.value))}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="budget" className="block text-sm font-medium text-gray-700">
+                Budget
+              </label>
+              <input
+                type="number"
+                id="budget"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                value={budget === null ? '' : budget.toString()}
+                onChange={(e) => setBudget(Number(e.target.value))}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="targetAudience" className="block text-sm font-medium text-gray-700">
+                Target Audience
+              </label>
+              <input
+                type="text"
+                id="targetAudience"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                value={targetAudience}
+                onChange={(e) => setTargetAudience(e.target.value)}
+                required
+              />
+            </div>
+            <CardFooter>
+              <Button type="submit" disabled={isLoadingSubmit}>
+                {isLoadingSubmit ? 'Creating...' : 'Create Campaign'}
+              </Button>
+            </CardFooter>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
