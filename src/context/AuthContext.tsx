@@ -21,39 +21,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     console.log("AuthProvider initializing...");
     
-    // Check if we have a hash fragment from email confirmation
-    const handleEmailConfirmation = async () => {
+    // Check if we have a hash fragment from email confirmation or OAuth callback
+    const handleAuthCallback = async () => {
       const hash = window.location.hash;
-      if (hash && hash.includes('type=signup')) {
+      if ((hash && hash.includes('type=signup')) || hash.includes('access_token=')) {
         try {
           setIsLoading(true);
-          console.log("Detected email confirmation hash:", hash);
+          console.log("Detected auth callback hash:", hash);
           
           const { data, error } = await supabase.auth.getSession();
           
           if (error) {
-            console.error("Error getting session after email confirmation:", error);
+            console.error("Error getting session after auth callback:", error);
             throw error;
           }
           
           if (data?.session) {
-            console.log("Session found after email confirmation:", data.session);
+            console.log("Session found after auth callback:", data.session);
             setSession(data.session);
             setUser(data.session.user);
-            toast.success("Email confirmed successfully! You are now signed in.");
+            
+            if (hash.includes('type=signup')) {
+              toast.success("Email confirmed successfully! You are now signed in.");
+            } else if (hash.includes('access_token=')) {
+              toast.success("Successfully signed in with Google!");
+            }
           } else {
-            console.log("No session found after email confirmation");
+            console.log("No session found after auth callback");
           }
         } catch (error: any) {
-          console.error("Error confirming email:", error);
-          toast.error(error.message || "Failed to confirm email");
+          console.error("Error handling auth callback:", error);
+          toast.error(error.message || "Failed to complete authentication");
         } finally {
           setIsLoading(false);
         }
       }
     };
     
-    handleEmailConfirmation();
+    handleAuthCallback();
     
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
