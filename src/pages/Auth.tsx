@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { Separator } from "@/components/ui/separator";
+import { AlertCircle } from "lucide-react";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -21,6 +22,22 @@ const Auth = () => {
   const [restaurantName, setRestaurantName] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Check for OAuth errors in URL
+  useEffect(() => {
+    const hash = location.hash;
+    if (hash && hash.includes('error=')) {
+      const errorMatch = hash.match(/error=([^&]*)/);
+      const errorMsgMatch = hash.match(/error_description=([^&]*)/);
+      
+      if (errorMatch && errorMsgMatch) {
+        const errorType = decodeURIComponent(errorMatch[1]);
+        const errorMsg = decodeURIComponent(errorMsgMatch[1]);
+        setAuthError(`${errorType}: ${errorMsg}`);
+      }
+    }
+  }, [location]);
 
   // Redirect authenticated users
   useEffect(() => {
@@ -35,6 +52,7 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setAuthError(null);
 
     try {
       if (!email || !password || !restaurantName) {
@@ -71,6 +89,7 @@ const Auth = () => {
       
     } catch (error: any) {
       console.error("Sign up error:", error);
+      setAuthError(error.message || "An error occurred during sign up");
       toast.error(error.message || "An error occurred during sign up");
     } finally {
       setLoading(false);
@@ -80,6 +99,7 @@ const Auth = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setAuthError(null);
 
     try {
       if (!email || !password) {
@@ -100,6 +120,7 @@ const Auth = () => {
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Sign in error:", error);
+      setAuthError(error.message || "An error occurred during sign in");
       toast.error(error.message || "An error occurred during sign in");
     } finally {
       setLoading(false);
@@ -109,12 +130,18 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
+      setAuthError(null);
       console.log("Starting Google sign in");
+      
+      // Log the current URL for debugging
+      console.log("Current URL:", window.location.href);
+      const redirectUrl = `${window.location.origin}/auth`;
+      console.log("Redirect URL:", redirectUrl);
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth`,
+          redirectTo: redirectUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -127,6 +154,7 @@ const Auth = () => {
       console.log("Google auth initiated:", data);
     } catch (error: any) {
       console.error("Google sign in error:", error);
+      setAuthError(error.message || "An error occurred during Google sign in");
       toast.error(error.message || "An error occurred during Google sign in");
     } finally {
       setLoading(false);
@@ -149,6 +177,14 @@ const Auth = () => {
               Sign in or create an account to manage your restaurant marketing
             </CardDescription>
           </CardHeader>
+          
+          {authError && (
+            <div className="mx-6 mb-4 p-3 bg-destructive/15 border border-destructive rounded-md flex items-start">
+              <AlertCircle className="h-5 w-5 text-destructive mr-2 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-destructive">{authError}</div>
+            </div>
+          )}
+          
           <Tabs defaultValue="signin" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
@@ -311,6 +347,12 @@ const Auth = () => {
               )}
             </TabsContent>
           </Tabs>
+          
+          <CardFooter className="flex flex-col space-y-3 pt-0">
+            <div className="text-xs text-center text-muted-foreground">
+              For Google authentication to work, make sure your Supabase project has Google OAuth properly configured in the authentication settings.
+            </div>
+          </CardFooter>
         </Card>
       </motion.div>
     </div>

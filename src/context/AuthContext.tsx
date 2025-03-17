@@ -33,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           if (error) {
             console.error("Error getting session after auth callback:", error);
+            toast.error(`Authentication error: ${error.message}`);
             throw error;
           }
           
@@ -48,6 +49,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           } else {
             console.log("No session found after auth callback");
+            if (hash.includes('error=')) {
+              // Extract error message from hash
+              const errorMatch = hash.match(/error=([^&]*)/);
+              const errorMsgMatch = hash.match(/error_description=([^&]*)/);
+              
+              const errorType = errorMatch ? decodeURIComponent(errorMatch[1]) : 'unknown';
+              const errorMsg = errorMsgMatch ? decodeURIComponent(errorMsgMatch[1]) : 'Authentication failed';
+              
+              console.error("OAuth error:", errorType, errorMsg);
+              toast.error(`Authentication failed: ${errorMsg}`);
+            }
           }
         } catch (error: any) {
           console.error("Error handling auth callback:", error);
