@@ -133,9 +133,10 @@ const Auth = () => {
       setAuthError(null);
       console.log("Starting Google sign in");
       
-      // Log the current URL for debugging
-      console.log("Current URL:", window.location.href);
-      const redirectUrl = `${window.location.origin}/auth`;
+      // Get the current URL for proper redirection
+      const currentUrl = window.location.origin;
+      console.log("Current URL base:", currentUrl);
+      const redirectUrl = `${currentUrl}/auth`;
       console.log("Redirect URL:", redirectUrl);
       
       const { data, error } = await supabase.auth.signInWithOAuth({
