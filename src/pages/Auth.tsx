@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -133,16 +132,15 @@ const Auth = () => {
       setAuthError(null);
       console.log("Starting Google sign in");
       
-      // Get the current URL for proper redirection
-      const currentUrl = window.location.origin;
-      console.log("Current URL base:", currentUrl);
-      const redirectUrl = `${currentUrl}/auth`;
-      console.log("Redirect URL:", redirectUrl);
+      // Use a fixed redirect URL that matches what's configured in Google Console
+      // This should match what you've registered in Google Cloud Console
+      const redirectUrl = "https://kpkwrnywumaosryedqwn.supabase.co/auth/v1/callback";
+      console.log("Using fixed redirect URL:", redirectUrl);
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectUrl,
+          redirectTo: "https://fluffyduck.ai/auth",
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
