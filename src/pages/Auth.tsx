@@ -132,15 +132,10 @@ const Auth = () => {
       setAuthError(null);
       console.log("Starting Google sign in");
       
-      // Use a fixed redirect URL that matches what's configured in Google Console
-      // This should match what you've registered in Google Cloud Console
-      const redirectUrl = "https://kpkwrnywumaosryedqwn.supabase.co/auth/v1/callback";
-      console.log("Using fixed redirect URL:", redirectUrl);
-      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: "https://fluffyduck.ai/auth",
+          redirectTo: "https://www.fluffyduck.ai/auth",
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
