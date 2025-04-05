@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { MessageCircle, Heart, Eye, CheckCircle } from "lucide-react";
@@ -156,48 +155,48 @@ const Dashboard = () => {
   }
 
   return (
-    <div className=" min-h-screen bg-[#F8F8FA]">
+    <div className="min-h-screen bg-[#F8F8FA] flex flex-col">
       <TopHeader />
-      <main className="grid grid-cols-7 gap-2 top-[80px]" style={{ height: "calc(100vh - 80px)" }}>
-        <div className="w-full h-full col-span-2">
-          <Sidebar />
-        </div>
-        <div className="w-full h-full col-span-5 overflow-y-auto p-10 pl-4" >
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-2xl font-bold">
-              {isPastRoute ? "Past Campaigns" : "Current & Upcoming Campaigns"}
-            </h1>
-            <ChannelSelector />
+      <div className="flex-1 pt-[80px]">
+        <main className="grid grid-cols-7 gap-2 h-[calc(100vh-80px)]">
+          <div className="col-span-2">
+            <Sidebar />
           </div>
-          {isLoading ? (
-            <div className="text-center py-12">Loading campaigns...</div>
-          ) : filteredCampaigns.length > 0 ? (
-            <div className="grid grid-cols-3 gap-4">
-              {filteredCampaigns.map((campaign) => (
-                <div key={campaign.id} className="mb-4 break-inside-avoid">
-                  <CampaignCard campaign={campaign} />
-                </div>
-              ))}
+          <div className="col-span-5 overflow-y-auto p-10 pl-4">
+            <div className="flex justify-between items-center mb-8">
+              <h1 className="text-2xl font-bold">
+                {isPastRoute ? "Past Campaigns" : "Current & Upcoming Campaigns"}
+              </h1>
+              <ChannelSelector />
             </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              {isPastRoute ? "No past campaigns" : "No upcoming campaigns"}
-            </div>
-          )}
-        </div>
-      </main>
+            {isLoading ? (
+              <div className="text-center py-12">Loading campaigns...</div>
+            ) : filteredCampaigns.length > 0 ? (
+              <div className="grid grid-cols-3 gap-4">
+                {filteredCampaigns.map((campaign) => (
+                  <div key={campaign.id} className="mb-4 break-inside-avoid">
+                    <CampaignCard campaign={campaign} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                {isPastRoute ? "No past campaigns" : "No upcoming campaigns"}
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
 
-      {
-        selectedCampaign && (
-          <CampaignDetailsDialog
-            campaign={selectedCampaign}
-            open={!!selectedCampaign}
-            onOpenChange={(open) => !open && setSelectedCampaign(null)}
-            onDelete={handleCampaignDeleted}
-          />
-        )
-      }
-    </div >
+      {selectedCampaign && (
+        <CampaignDetailsDialog
+          campaign={selectedCampaign}
+          open={!!selectedCampaign}
+          onOpenChange={(open) => !open && setSelectedCampaign(null)}
+          onDelete={handleCampaignDeleted}
+        />
+      )}
+    </div>
   );
 };
 
