@@ -13,7 +13,7 @@ authors = [
     {name = "FluffyDuck Team"}
 ]
 dependencies = [
-    "google-cloud-genai>=0.1.0",
+    "google-genai>=0.1.0",
     "quart>=0.18.4",
     "python-dotenv>=1.0.0",
     "twilio>=8.10.0"
@@ -29,7 +29,8 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["src"]
+package-dir = {"" = "src"}
+packages = ["fluffyduck_gemini_twilio"]
 
 [tool.black]
 line-length = 88

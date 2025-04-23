@@ -22,3 +22,37 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+
+# Packaging / build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+
+# Type checker & linter caches
+.mypy_cache/
+.ruff_cache/
+
+# tox / nox
+.tox/
+.nox/
+
+# IDE config
+*.idea/
+*.vscode/*
+*.cursor/*
