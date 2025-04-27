@@ -4,10 +4,12 @@ A Python application that creates a bridge between Twilio Voice Calls and Google
 
 ## Prerequisites
 
-- Python 3.7+
-- Google Cloud Platform Account
-- Twilio Account
-- ngrok (for local development)
+- Python 3.9+ (required by the `google-genai` Live SDK)
+- Google Cloud Platform Project with the Gemini API enabled and a service-account that has Vertex AI `GenerativeAiUser` access.
+- Twilio Account with a voice-capable phone number.
+- `ngrok` (or another tunnel) for local development.
+
+> **Tip**  If you only need quick testing you can use a Google API key instead of a service account by switching `vertexai=True` to `api_key="YOUR_KEY"` in `app.py`.
 
 ## Setup
 
@@ -22,9 +24,10 @@ A Python application that creates a bridge between Twilio Voice Calls and Google
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. Install the package in development mode:
+3. Install dependencies (including the latest Live-API SDK):
    ```bash
-   pip install -e ".[dev]"
+   pip install -U google-genai               # Live-API
+   pip install -e ".[dev]"  # local package + dev tools
    ```
 
 4. Copy `.env.example` to `.env` and fill in your credentials:
@@ -40,28 +43,50 @@ A Python application that creates a bridge between Twilio Voice Calls and Google
 
 ## Running the Component
 
-1. Start the Quart server:
+1. Ensure environment variables are set (see `.env.example`).  At minimum you need:
+
+   ```env
+   GOOGLE_CLOUD_PROJECT=<your-gcp-project>
+   GOOGLE_CLOUD_LOCATION=us-central1   # or europe-west4, etc.
+   HOST=0.0.0.0                        # let Quart listen on all interfaces
+   PORT=8080
+   ```
+
+2. Start the Quart server:
    ```bash
    python run.py
    ```
 
-2. In a separate terminal, start ngrok:
+3. In a second terminal start ngrok and expose the port:
    ```bash
    ngrok http 8080
    ```
 
-3. Copy the HTTPS URL from ngrok and update your Twilio configuration:
-   - Create a TwiML Bin with the following content:
-     ```xml
-     <?xml version="1.0" encoding="UTF-8"?>
-     <Response>
-         <Connect>
-             <Stream url="wss://YOUR_NGROK_URL/gemini" />
-         </Connect>
-     </Response>
-     ```
-   - Replace `YOUR_NGROK_URL` with your ngrok URL (change https:// to wss://)
-   - Configure your Twilio phone number to use this TwiML Bin
+4. Point your Twilio number to the WebSocket endpoint:
+
+   Create a **TwiML Bin** containing:
+
+   ```xml
+   <?xml version="1.0" encoding="UTF-8"?>
+   <Response>
+       <Connect>
+           <Stream url="wss://YOUR_NGROK_SUBDOMAIN.ngrok-free.app/gemini" />
+       </Connect>
+   </Response>
+   ```
+
+   Replace `YOUR_NGROK_SUBDOMAIN` with the HTTPS host output by ngrok (note the `wss://` scheme).
+
+   Finally, configure the Twilio phone number **Voice Webhook** to "TwiML Bin → your-bin".
+
+When you dial the number you should see:
+
+```text
+WebSocket connection established
+Stream started – <TWILIO_STREAM_SID>
+```
+
+Bidirectional audio will start flowing between Twilio (8 kHz µ-law) and Gemini (16/24 kHz PCM).  The code does a basic up/down-sampling in pure Python – swap in a DSP lib for production quality.
 
 ## Development
 
@@ -107,11 +132,13 @@ conversational-ai-gemini-twilio/
 └── README.md
 ```
 
-## Testing
+## Testing / Demo Flow
 
-1. Call your Twilio phone number
-2. Speak into the phone
-3. Listen for Gemini's response
+1. Call your Twilio number from any phone.
+2. Speak – Twilio streams µ-law audio to the server, which forwards it to Gemini.
+3. Gemini responds; the server transcodes the 24 kHz PCM back to µ-law and Twilio plays it to you in real time.
+
+Try interrupting Gemini mid-sentence – the Live-API will cancel the generation and listen again.
 
 ## Integration with FluffyDuck
 
@@ -119,10 +146,16 @@ This component is designed to work alongside other FluffyDuck services. It handl
 
 ## Troubleshooting
 
-- Ensure all environment variables are set correctly
-- Check that ngrok is running and accessible
-- Verify Twilio configuration is correct
-- Monitor the Quart server logs for errors
+│ Symptom                               │ Common Cause / Fix                                 │
+│---------------------------------------│----------------------------------------------------│
+│ Call hangs up immediately              │ Twilio cannot reach `wss://…/gemini` – re-check    │
+│                                        │ ngrok tunnel and TwiML Bin URL                    │
+│ No audio from Gemini                   │ Make sure `google-genai` is ≥ 0.5, check GCP IAM   │
+│                                        │ role and that the Gemini API is enabled           │
+│ Audio quality is garbled               │ Replace naive resampler with a proper DSP (SciPy) │
+│ Server shows `PermissionDenied`        │ ADC creds missing ‑ `gcloud auth application-default login` │
+
+Enable Quart debug logs with `export QUART_ENV=development` for verbose output.
 
 ## License
 
