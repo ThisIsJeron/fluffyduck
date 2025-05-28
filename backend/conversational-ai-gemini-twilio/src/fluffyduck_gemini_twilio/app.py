@@ -1,6 +1,6 @@
 """Main application module for the Gemini-Twilio integration."""
 
-from quart import Quart, websocket
+from quart import Quart, websocket, request, Response
 import json
 import base64
 import struct
@@ -10,11 +10,16 @@ import os
 from dotenv import load_dotenv
 import time
 from .config import SYSTEM_PROMPT
+import requests
+from twilio.rest import Client as TwilioClient
 
 # Load environment variables
 load_dotenv()
 
 app = Quart(__name__)
+
+# In-memory store for Twilio transcription snippets keyed by CallSid
+transcription_store: dict[str, list[str]] = {}
 
 # ---------------------------------------------------------------------------
 # System Prompt (Catering Menu)
@@ -41,7 +46,7 @@ class GeminiTwilio:
 
         # Session configuration with system prompt
         self.config = {
-            "response_modalities": ["AUDIO"],
+            "response_modalities": ["AUDIO", "TEXT"],
             "system_instruction": types.Content(parts=[types.Part(text=SYSTEM_PROMPT)]),
         }
         self.stream_sid = None
@@ -65,6 +70,7 @@ class GeminiTwilio:
 
             if data["event"] == "start":
                 self.stream_sid = data["start"]["streamSid"]
+                self.call_sid = data["start"].get("callSid")
                 print(f"Stream started – {self.stream_sid}")
 
             elif data["event"] == "media":
@@ -185,6 +191,10 @@ class GeminiTwilio:
                     with open(fname, "w", encoding="utf-8") as fp:
                         if self.transcript:
                             fp.write("\n".join(self.transcript))
+                            # Append any Twilio transcription snippets
+                            if hasattr(self, "call_sid") and self.call_sid in transcription_store:
+                                fp.write("\n--- Twilio Speech Transcript ---\n")
+                                fp.write("\n".join(transcription_store[self.call_sid]))
                         else:
                             fp.write("(No textual content captured – audio-only session)")
                     print(f"Transcript saved to {fname}")
@@ -202,6 +212,8 @@ async def talk_to_gemini():
 
 def create_app():
     """Create and configure the Quart application."""
+    # Attempt to update Twilio webhook on startup
+    _update_twilio_webhook()
     return app
 
 if __name__ == "__main__":
@@ -303,4 +315,86 @@ def downsample_to_8k(pcm_24k: bytes) -> bytes:
         n = len(pcm_24k) // 2
         samples = struct.unpack("<%dh" % n, pcm_24k)
         down = samples[::3]
-        return struct.pack("<%dh" % len(down), *down) 
+        return struct.pack("<%dh" % len(down), *down)
+
+# ---------------------------------------------------------------------------
+# Twilio transcription webhook
+# ---------------------------------------------------------------------------
+
+@app.route("/twilio/transcription", methods=["POST"])
+async def twilio_transcription():
+    """Receive transcription events from Twilio and store them."""
+    # Twilio sends application/x-www-form-urlencoded by default
+    form = await request.form
+    call_sid = form.get("CallSid") or form.get("callsid")
+    # Prefer Real-Time Transcription (\<Start><Transcription>) payload if available
+    text = None
+    if form.get("TranscriptionData"):
+        try:
+            data = json.loads(form["TranscriptionData"])
+            # Incoming key can be Transcript or transcript depending on casing
+            text = data.get("Transcript") or data.get("transcript")
+            # Only store final utterances when Twilio marks them as final
+            final_flag = form.get("Final", "true").lower()
+            if final_flag == "false":
+                text = None  # skip interim results
+        except Exception:
+            pass
+    # Fall back to older transcription keys
+    if not text:
+        text = form.get("TranscriptionText") or form.get("SpeechResult") or form.get("transcription_text")
+
+    if call_sid and text:
+        transcription_store.setdefault(call_sid, []).append(text)
+        print(f"[Twilio STT] {call_sid}: {text}")
+    return Response(status=204)
+
+# ---------------------------------------------------------------------------
+# Twilio / ngrok helper to automatically update voice webhook
+# ---------------------------------------------------------------------------
+
+def _update_twilio_webhook():
+    """Detect active ngrok tunnel and update Twilio phone webhook."""
+    account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+    phone_sid = os.getenv("TWILIO_PHONE_SID")
+
+    if not all([account_sid, auth_token, phone_sid]):
+        print("Twilio credentials not set – skip automatic webhook update")
+        return
+
+    try:
+        ngrok_resp = requests.get("http://127.0.0.1:4040/api/tunnels", timeout=2)
+        tunnels = ngrok_resp.json()["tunnels"]
+        public_https = next(t["public_url"] for t in tunnels if t["proto"] == "https")
+        webhook_url = f"{public_https}/twilio/inbound_call"
+
+        twilio_client = TwilioClient(account_sid, auth_token)
+        twilio_client.incoming_phone_numbers(phone_sid).update(voice_url=webhook_url, voice_method="POST")
+        print(f"Updated Twilio voice webhook to {webhook_url}")
+    except Exception as err:
+        print(f"Could not update Twilio webhook automatically: {err}")
+
+# ---------------------------------------------------------------------------
+# Simple TwiML endpoint so we don't need a TwiML Bin
+# ---------------------------------------------------------------------------
+
+from twilio.twiml.voice_response import VoiceResponse, Connect, Start
+
+
+@app.route("/twilio/inbound_call", methods=["GET", "POST"])
+async def inbound_call():
+    host = request.host.split(":")[0]
+    resp = VoiceResponse()
+    # Enable Twilio Real-Time Transcription for the caller (inbound track)
+    start = resp.start()
+    start.transcription(
+        status_callback_url=f"https://{host}/twilio/transcription",
+        track="inbound_track",
+        partial_results="false",
+    )
+
+    connect = Connect()
+    connect.stream(url=f"wss://{host}/gemini")
+    resp.append(connect)
+    return Response(str(resp), mimetype="application/xml") 

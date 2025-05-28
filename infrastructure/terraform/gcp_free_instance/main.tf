@@ -28,8 +28,8 @@ resource "google_compute_instance" "fd_free_vm" {
 
   boot_disk {
     initialize_params {
-      image = "projects/debian-cloud/global/images/family/debian-12"
-      size  = 30 # GB, within free tier quota
+      image = "projects/cos-cloud/global/images/family/cos-stable"
+      size  = 30
       type  = "pd-balanced"
     }
   }
@@ -44,20 +44,35 @@ resource "google_compute_instance" "fd_free_vm" {
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 
-  metadata_startup_script = <<-EOT
-    #!/usr/bin/env bash
+  metadata_startup_script = <<-'EOT'
+    #!/bin/bash
     set -euo pipefail
-    echo "---- FluffyDuck startup ----"
-    apt-get update -y
-    apt-get install -y git python3-pip
-    cd /opt
-    git clone https://github.com/YOUR_USER/YOUR_REPO.git fluffyduck || true
-    cd fluffyduck
-    pip3 install --upgrade pip
-    pip3 install -r requirements.txt || true
 
-    # Export env vars passed from metadata
-    EOT
+    echo "---- COS FluffyDuck startup ----"
+
+    # COS comes with docker, but ensure it's active
+    systemctl start docker || true
+
+    # Write env file from instance metadata keys we provided
+    ENV_FILE="/etc/fluffyduck.env"
+    echo "# generated" > ${ENV_FILE}
+    for KEY in $(curl -s -H "Metadata-Flavor: Google" \
+        "http://metadata/computeMetadata/v1/instance/attributes/?recursive=true" | jq -r 'keys[]'); do
+      # Skip google-managed keys
+      if [[ "${KEY}" == enable-oslogin* ]]; then continue; fi
+      VALUE=$(curl -s -H "Metadata-Flavor: Google" "http://metadata/computeMetadata/v1/instance/attributes/${KEY}")
+      echo "${KEY}=${VALUE}" >> ${ENV_FILE}
+    done
+
+    docker pull gcr.io/$(curl -s -H "Metadata-Flavor: Google" \
+      "http://metadata/computeMetadata/v1/project/project-id")/fluffyduck:latest
+
+    docker run -d --restart=always --env-file=${ENV_FILE} -p 8080:8080 \
+      --name fluffyduck gcr.io/$(curl -s -H "Metadata-Flavor: Google" \
+      "http://metadata/computeMetadata/v1/project/project-id")/fluffyduck:latest
+
+    echo "FluffyDuck container started"
+  EOT
 
   metadata = merge(
     {
